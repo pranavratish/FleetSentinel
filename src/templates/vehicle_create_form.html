@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Vehicle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        label, input {
+            display: block;
+            margin: 10px 0;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        async function createVehicle(event) {
+            event.preventDefault(); // Prevent page reload
+
+            // Collect form data
+            const vehicleData = {
+                make: document.getElementById('make').value,
+                model: document.getElementById('model').value,
+                year: parseInt(document.getElementById('year').value),
+                registration_number: document.getElementById('registration_number').value,
+                status: document.getElementById('status').value,
+                mileage: parseInt(document.getElementById('mileage').value),
+                fuel_type: document.getElementById('fuel_type').value
+            };
+
+            try {
+                // Send POST request to create vehicle
+                const response = await fetch('/vehicles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(vehicleData),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('message').innerText = `Vehicle created successfully! ID: ${result.vehicle_id}`;
+                } else {
+                    document.getElementById('message').innerText = 'Error creating vehicle. Please try again.';
+                }
+            } catch (error) {
+                document.getElementById('message').innerText = 'Error connecting to the server. Please try again.';
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <h1>Create a New Vehicle</h1>
+
+    <!-- Form for vehicle creation -->
+    <form id="vehicle-form" onsubmit="createVehicle(event)">
+        <label for="make">Make:</label>
+        <input type="text" id="make" name="make" required>
+
+        <label for="model">Model:</label>
+        <input type="text" id="model" name="model" required>
+
+        <label for="year">Year:</label>
+        <input type="number" id="year" name="year" required>
+
+        <label for="registration_number">Registration Number:</label>
+        <input type="text" id="registration_number" name="registration_number" required>
+
+        <label for="status">Status:</label>
+        <input type="text" id="status" name="status" required>
+
+        <label for="mileage">Mileage:</label>
+        <input type="number" id="mileage" name="mileage" required>
+
+        <label for="fuel_type">Fuel Type:</label>
+        <input type="text" id="fuel_type" name="fuel_type" required>
+
+        <button type="submit">Create Vehicle</button>
+    </form>
+
+    <!-- Placeholder for success/error messages -->
+    <div id="message" class="message"></div>
+
+</body>
+</html>
