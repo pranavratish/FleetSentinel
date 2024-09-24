@@ -13,9 +13,10 @@ def create_vehicle(db: Session, data: dict):
 def get_vehicle(db: Session, vehicle_id: int):
     return db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
 
-# Retrieve all vehicles in DB with pages
-def get_all_vehicles(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(Vehicle).offset(skip).limit(limit).all()
+# not functional as the query logic is implemented in the search function in the routes file
+# # Retrieve all vehicles in DB with pages
+# def get_all_vehicles(db: Session, skip: int = 0, limit: int = 10):
+#     return db.query(Vehicle).offset(skip).limit(limit).all()
 
 # Function for updating vehicle entry
 def update_vehicle(db: Session, vehicle_id: int, data: dict):

@@ -3,31 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Fleet Management</title>
+    <title>Welcome to FleetSentinel</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 50px;
         }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+
         a {
-            display: block;
-            margin: 20px;
-            font-size: 20px;
             text-decoration: none;
-            color: #007BFF;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            margin-right: 10px;
         }
+
         a:hover {
-            text-decoration: underline;
+            background-color: #0056b3;
         }
+
+        a:active {
+            background-color: #003f7f;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>Welcome to Fleet Management App</h1>
+    <h1>Welcome to FleetSentinel</h1>
     <p>Manage your vehicles easily.</p>
 
     <a href="/vehicles/new">Create a New Vehicle</a>
+    <a href="/vehicles/search/form">Vehicle Inventory</a>
 
 </body>
 </html>
