@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Vehicle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+        }
+    </style>
+    <script>
+        let initialVehicleData = {};  // Store the initial vehicle data
+
+        // Utility function to sanitize input
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  // Remove unnecessary spaces and escape HTML
+            return element.innerHTML;
+        }
+
+        // Utility function to fetch data from an API endpoint
+        async function fetchData(url, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            return response.ok ? response.json() : Promise.reject(response.statusText);
+        }
+
+        // Populate form fields with vehicle data
+        function populateVehicleForm(vehicle) {
+            const fields = ['make', 'model', 'year', 'registration_number', 'status', 'mileage', 'fuel_type'];
+            fields.forEach(field => {
+                document.getElementById(field).value = vehicle[field];
+            });
+        }
+
+        // Get only changed fields for update
+        function getChangedFields() {
+            const fields = ['make', 'model', 'year', 'registration_number', 'status', 'mileage', 'fuel_type'];
+            const changedFields = {};
+            fields.forEach(field => {
+                const currentValue = document.getElementById(field).value;
+                if (currentValue !== initialVehicleData[field]) {
+                    changedFields[field] = sanitizeInput(currentValue);
+                }
+            });
+            return changedFields;
+        }
+
+        // Fetch and load the vehicle data into the form
+        async function loadVehicleData(vehicleId) {
+            try {
+                const vehicle = await fetchData(`/vehicles/${vehicleId}`);
+                initialVehicleData = vehicle;  // Store the initial vehicle data
+                populateVehicleForm(vehicle);  // Fill the form with vehicle data
+            } catch (error) {
+                alert('Error fetching vehicle data: ' + error);
+            }
+        }
+
+        // Handle form submission to update vehicle
+        async function handleUpdate(event) {
+            event.preventDefault();
+
+            const vehicleId = document.getElementById('vehicle_id').value;
+            const changedData = getChangedFields();
+
+            // If no fields have changed, alert the user
+            if (Object.keys(changedData).length === 0) {
+                alert('No changes detected.');
+                return;
+            }
+
+            try {
+                await fetchData(`/vehicles/${vehicleId}`, 'PUT', changedData);
+                alert('Vehicle updated successfully!');
+            } catch (error) {
+                alert('Error updating vehicle: ' + error);
+            }
+        }
+
+        // Attach event listeners after the DOM content is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const vehicleIdInput = document.getElementById('vehicle_id');
+
+            // Add listener to load vehicle data only when a valid vehicle_id is entered
+            vehicleIdInput.addEventListener('blur', () => {
+                const vehicleId = vehicleIdInput.value;
+                if (vehicleId) {
+                    loadVehicleData(vehicleId);  // Fetch vehicle data once vehicle ID is provided
+                }
+            });
+
+            document.getElementById('updateVehicleForm').addEventListener('submit', handleUpdate);
+        });
+    </script>
+</head>
+<body>
+    <h1>Update Vehicle</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <form id="updateVehicleForm">
+        <label for="vehicle_id">Vehicle ID (to update):</label>
+        <p style="font-size: 12px; color: #555;">Enter the vehicle ID to auto-fill the rest of the form.</p>
+        <input type="number" id="vehicle_id" name="vehicle_id" placeholder="Enter Vehicle ID" required>
+
+        <label for="make">Make:</label>
+        <input type="text" id="make" name="make" required>
+
+        <label for="model">Model:</label>
+        <input type="text" id="model" name="model" required>
+
+        <label for="year">Year:</label>
+        <input type="number" id="year" name="year" required>
+
+        <label for="registration_number">Registration Number:</label>
+        <input type="text" id="registration_number" name="registration_number" required>
+
+        <label for="status">Status:</label>
+        <input type="text" id="status" name="status" required>
+
+        <label for="mileage">Mileage:</label>
+        <input type="number" id="mileage" name="mileage" required>
+
+        <label for="fuel_type">Fuel Type:</label>
+        <input type="text" id="fuel_type" name="fuel_type" required>
+
+        <button type="submit">Update Vehicle</button>
+    </form>
+</body>
+</html>

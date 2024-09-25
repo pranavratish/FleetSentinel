@@ -77,6 +77,12 @@
 
             vehicles.forEach(vehicle => {
                 const row = document.createElement('tr');
+
+                // Make row clickable to navigate to update vehicle page
+                row.onclick = () => {
+                    window.location.href = `/vehicles/${vehicle.vehicle_id}/update`;
+                };
+
                 row.innerHTML = `
                     <td>${vehicle.vehicle_id}</td>
                     <td>${vehicle.make}</td>
@@ -146,6 +152,8 @@
 
     <h1>Vehicle List & Search</h1>
 
+    <button onclick="window.location.href='/'">Back to Home</button>
+    
     <!-- General search bar -->
     <form id="searchVehicleForm">
         <input type="text" id="searchBar" name="query" placeholder="Search for vehicles..." required>

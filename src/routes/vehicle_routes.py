@@ -11,7 +11,6 @@ from services.vehicle_services import (
     delete_vehicle
 )
 
-
 # declares Blueprint for vehicle routes
 vehicle_bp = Blueprint('vehicle', __name__)
 
@@ -24,6 +23,11 @@ def new_vehicle_form():
 @vehicle_bp.route('/vehicles/search/form', methods=['GET'])
 def vehicles_table_form():
     return render_template('vehicle_search_form.html')
+
+# renders the update vehicle HTML form
+@vehicle_bp.route('/vehicles/<int:vehicle_id>/update', methods=['GET'])
+def update_vehicle_form(vehicle_id):
+    return render_template('vehicle_update_form.html')
 
 # fetches the DB session
 def get_db():
@@ -46,16 +50,15 @@ def create_vehicle_endpoint():
         new_vehicle = create_vehicle(db, data)
         return jsonify(new_vehicle.to_dict()), 201
 
-# dead function, we don't need it for anything right now, perhaps in the future we can use it somehow
 # returns a vehicle by ID
-# @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['GET'])
-# def get_vehicle_by_id_endpoint(vehicle_id):
-#     with contextlib.closing(next(get_db())) as db:
-#         vehicle = get_vehicle(db, vehicle_id=vehicle_id)
-#         not_found = handle_vehicle_not_found(vehicle)
-#         if not_found:
-#             return not_found
-#         return jsonify(vehicle.to_dict())
+@vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['GET'])
+def get_vehicle_by_id_endpoint(vehicle_id):
+    with contextlib.closing(next(get_db())) as db:
+        vehicle = get_vehicle(db, vehicle_id=vehicle_id)
+        not_found = handle_vehicle_not_found(vehicle)
+        if not_found:
+            return not_found
+        return jsonify(vehicle.to_dict())
 
 # more accessible search function and table display of rows with pagination
 @vehicle_bp.route('/vehicles/search', methods=['GET'])
@@ -100,17 +103,33 @@ def search_vehicles():
             'vehicles': [vehicle.to_dict() for vehicle in vehicles]
         })
 
-
-
-# updates a vehicle's details
+# updates a vehicle's details (supports partial updates)
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['PUT'])
 def update_vehicle_endpoint(vehicle_id):
     with contextlib.closing(next(get_db())) as db:
+        # Get the data from the request (only the fields to be updated will be sent)
         data = request.get_json()
-        updated_vehicle = update_vehicle(db, vehicle_id=vehicle_id, data=data)
+        
+        # Retrieve the vehicle to be updated
+        updated_vehicle = get_vehicle(db, vehicle_id=vehicle_id)
+        
+        # If the vehicle doesn't exist, handle the "not found" case
         not_found = handle_vehicle_not_found(updated_vehicle)
         if not_found:
             return not_found
+        
+        # Loop through the provided data and update only the fields that are present
+        for key, value in data.items():
+            if value:  # Only update the field if the new value is provided (non-null)
+                setattr(updated_vehicle, key, value)
+        
+        # Commit the changes to the database
+        db.commit()
+        
+        # Refresh the updated vehicle entry to reflect the changes
+        db.refresh(updated_vehicle)
+        
+        # Return the updated vehicle as a JSON response
         return jsonify(updated_vehicle.to_dict())
 
 # deletes a vehicle
