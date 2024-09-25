@@ -62,27 +62,27 @@
     <script>
         let currentPage = 1;
         let perPage = 10;
-
+    
         // Sanitize input before use to prevent potential XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
             element.innerText = input;  
             return element.innerHTML;
         }
-
+    
         // Utility function to handle data display
         function displayDataInTable(vehicles) {
             const vehicleTableBody = document.getElementById('vehicleTableBody');
             vehicleTableBody.innerHTML = ''; 
-
+    
             vehicles.forEach(vehicle => {
                 const row = document.createElement('tr');
-
+    
                 // Make row clickable to navigate to update vehicle page
                 row.onclick = () => {
                     window.location.href = `/vehicles/${vehicle.vehicle_id}/update`;
                 };
-
+    
                 row.innerHTML = `
                     <td>${vehicle.vehicle_id}</td>
                     <td>${vehicle.make}</td>
@@ -92,13 +92,14 @@
                     <td>${vehicle.status}</td>
                     <td>${vehicle.mileage}</td>
                     <td>${vehicle.fuel_type}</td>
-                `;
+                    <td><button class="delete-btn" data-id="${vehicle.vehicle_id}" onclick="event.stopPropagation(); confirmDelete(${vehicle.vehicle_id})">Delete</button></td>
+                `;  // Added delete button for each vehicle
                 vehicleTableBody.appendChild(row);
             });
-
+    
             document.getElementById('vehicleTable').style.display = vehicles.length ? 'table' : 'none';
         }
-
+    
         // Utility function to fetch and handle response
         async function fetchAndDisplayVehicles(url) {
             try {
@@ -117,36 +118,61 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-
+    
         // Function to fetch vehicles with user-defined per page value
         function fetchVehicles(page) {
             fetchAndDisplayVehicles(`/vehicles/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
         }
-
+    
+        // Handle delete operation with confirmation
+        async function handleDelete(vehicleId) {
+            try {
+                const response = await fetch(`/vehicles/${vehicleId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert('Vehicle deleted successfully!');
+                    // Refresh the table after deletion
+                    fetchVehicles(currentPage);
+                } else {
+                    alert('Error deleting vehicle.');
+                }
+            } catch (error) {
+                alert('Error connecting to the server.');
+            }
+        }
+    
+        // Function to confirm deletion
+        function confirmDelete(vehicleId) {
+            if (confirm(`Are you sure you want to delete vehicle with ID ${vehicleId}? This action cannot be undone.`)) {
+                handleDelete(vehicleId);  // Proceed with deletion if confirmed
+            }
+        }
+    
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('searchVehicleForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchVehicles(currentPage);
             });
-
+    
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchVehicles(currentPage);
             });
-
+    
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     fetchVehicles(currentPage);
                 }
             });
-
+    
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchVehicles(currentPage);
             });
         });
-    </script>
+    </script>    
 </head>
 <body>
 
@@ -181,6 +207,7 @@
                 <th>Status</th>
                 <th>Mileage</th>
                 <th>Fuel Type</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody id="vehicleTableBody"></tbody>
