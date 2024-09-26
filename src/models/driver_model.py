@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Date, TIMESTAMP, ForeignKey
 from sqlalchemy.sql import func
 from db.connection import Base
 
@@ -12,7 +12,7 @@ class Driver(Base):
     license_expiry_date = Column(Date, nullable=False)
     phone_number = Column(String(20), nullable=False)
     email = Column(String(100), nullable=False, unique=True)
-    assigned_vehicle_id = Column(Integer, nullable=True)  # References vehicles table (foreign key)
+    assigned_vehicle_id = Column(Integer, ForeignKey('vehicles.vehicle_id'), nullable=True)  # References vehicles table (foreign key)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
