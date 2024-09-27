@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # imports models and Base class
-from models import vehicle_model, driver_model
+from models import vehicle_model, driver_model, trip_logs_model, routes_model, m_records_model
 from db.connection import Base
 
 # sets database url

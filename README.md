@@ -21,6 +21,10 @@ Tasks in the FleetSentinel project are planned using a structured approach that 
 
 <img src="./docs/trello1T2A2.png" width="700" height="300">
 
+### During Project
+
+<img src="./docs/duringproject.png" width="700" height="300">
+
 ### Dependencies
 
 
