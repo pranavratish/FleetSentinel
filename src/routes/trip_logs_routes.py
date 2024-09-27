@@ -1,6 +1,6 @@
 import contextlib
 from functools import wraps
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app
 from sqlalchemy import or_, String
 from db.connection import SessionLocal
 from models.trip_logs_model import TripLog
@@ -30,25 +30,30 @@ def with_db(f):
             return f(db, *args, **kwargs)
     return decorated_function
 
-# helper function to handle "Trip log not found" case
+# Helper function to log "Trip log not found" case
 def trip_log_not_found_response(trip_log):
     if not trip_log:
         return jsonify({'error': 'Trip log not found'}), 404
 
-# serves the HTML form for creating a new trip log
+# Serves the HTML form for creating a new trip log
 @trip_log_bp.route('/trip_logs/new', methods=['GET'])
 def new_trip_log_form():
-    return render_template('trip_log_create_form.html')
+    return render_template('trip_logs_create_form.html')
 
-# renders the table display and search form HTML file
+# Renders the table display and search form HTML file
 @trip_log_bp.route('/trip_logs/search/form', methods=['GET'])
 def trip_logs_table_form():
-    return render_template('trip_log_search_form.html')
+    return render_template('trip_logs_search_form.html')
 
-# renders the update trip log HTML form
+# Renders the update trip log HTML form
 @trip_log_bp.route('/trip_logs/<int:trip_id>/update', methods=['GET'])
-def update_trip_log_form(trip_id):
-    return render_template('trip_log_update_form.html')
+@with_db
+def update_trip_log_form(db, trip_id):
+    trip_log = get_trip_log(db, trip_id=trip_id)  
+    if not trip_log:
+        current_app.logger.error(f"Trip log with ID {trip_id} not found")
+        return jsonify({'error': 'Trip log not found'}), 404
+    return render_template('trip_logs_update_form.html', trip_log=trip_log)
 
 # creates a new trip log
 @trip_log_bp.route('/trip_logs', methods=['POST'])
@@ -95,7 +100,7 @@ def search_trip_logs(db):
 
         # Apply all search filters with OR logic
         query = query.filter(or_(*search_filters))
-
+ 
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)

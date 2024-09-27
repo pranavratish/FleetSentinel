@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Trip Log</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+        }
+    </style>
+    <script>
+        // Utility function to sanitize input
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  
+            return element.innerHTML;
+        }
+
+        // Handle form submission to update trip log
+        async function handleUpdate(event) {
+            event.preventDefault();
+
+            const tripId = document.getElementById('trip_id').value;
+            const sanitizedData = {
+                vehicle_id: sanitizeInput(document.getElementById('vehicle_id').value),
+                driver_id: sanitizeInput(document.getElementById('driver_id').value),
+                route_id: sanitizeInput(document.getElementById('route_id').value),
+                start_time: sanitizeInput(document.getElementById('start_time').value),
+                end_time: sanitizeInput(document.getElementById('end_time').value || null),  // Nullable end_time
+                mileage_start: sanitizeInput(document.getElementById('mileage_start').value),
+                mileage_end: sanitizeInput(document.getElementById('mileage_end').value || null),  // Nullable mileage_end
+                status: sanitizeInput(document.getElementById('status').value),
+                notes: sanitizeInput(document.getElementById('notes').value),
+            };
+
+            try {
+                const response = await fetch(`/trip_logs/${tripId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sanitizedData)
+                });
+
+                if (response.ok) {
+                    alert('Trip log updated successfully!');
+                } else {
+                    throw new Error('Error updating trip log');
+                }
+            } catch (error) {
+                alert('Error updating trip log: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('updateTripLogForm').addEventListener('submit', handleUpdate);
+        });
+    </script>
+</head>
+<body>
+    <h1>Update Trip Log</h1>
+
+    <button onclick="window.location.href='/trip_logs/search/form'">Go Back</button>
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Prepopulate the form using Jinja2 templating from the backend -->
+    <form id="updateTripLogForm">
+        <label for="trip_id">Trip ID:</label>
+        <input type="number" id="trip_id" name="trip_id" value="{{ trip_log.trip_id }}" readonly required>
+
+        <label for="vehicle_id">Vehicle ID:</label>
+        <input type="number" id="vehicle_id" name="vehicle_id" value="{{ trip_log.vehicle_id }}" required>
+
+        <label for="driver_id">Driver ID:</label>
+        <input type="number" id="driver_id" name="driver_id" value="{{ trip_log.driver_id }}" required>
+
+        <label for="route_id">Route ID:</label>
+        <input type="number" id="route_id" name="route_id" value="{{ trip_log.route_id }}" required>
+
+        <label for="start_time">Start Time:</label>
+        <input type="datetime-local" id="start_time" name="start_time" value="{{ trip_log.start_time }}" required>
+
+        <label for="end_time">End Time:</label>
+        <input type="datetime-local" id="end_time" name="end_time" value="{{ trip_log.end_time }}">
+
+        <label for="mileage_start">Mileage Start:</label>
+        <input type="number" id="mileage_start" name="mileage_start" value="{{ trip_log.mileage_start }}" required>
+
+        <label for="mileage_end">Mileage End:</label>
+        <input type="number" id="mileage_end" name="mileage_end" value="{{ trip_log.mileage_end }}">
+
+        <label for="status">Status:</label>
+        <input type="text" id="status" name="status" value="{{ trip_log.status }}" required>
+
+        <label for="notes">Notes:</label>
+        <textarea id="notes" name="notes">{{ trip_log.notes }}</textarea>
+
+        <button type="submit">Update Trip Log</button>
+    </form>
+</body>
+</html>
