@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Driver</title>
+    <style>
+        /* Body styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        /* Center the title */
+        h1 {
+            text-align: center;
+        }
+
+        /* Form container with padding, shadow, and background color */
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Label styling */
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* Input and select field styling */
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        /* Submit button styling */
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Button hover state */
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Disabled button styling */
+        button:disabled {
+            background-color: #ddd;
+        }
+
+    </style>
+    <script>
+        // Utility function to sanitize input for client-side safety
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
+            return element.innerHTML;
+        }
+    
+        // Function to handle form submission and sanitize the data
+        function handleSubmit(event) {
+            event.preventDefault();  // Prevents default form submission
+    
+            // Collect the assignedVehicleID and set to null if empty
+            let assignedVehicleID = document.getElementById('assigned_vehicle_id').value;
+            assignedVehicleID = assignedVehicleID ? sanitizeInput(assignedVehicleID) : null;  // Do not sanitize if null
+    
+            // Collecting and sanitizing form data
+            const sanitizedData = {
+                name: sanitizeInput(document.getElementById('name').value),
+                license_number: sanitizeInput(document.getElementById('license_number').value),
+                license_expiry_date: sanitizeInput(document.getElementById('license_expiry_date').value),
+                phone_number: sanitizeInput(document.getElementById('phone_number').value),
+                email: sanitizeInput(document.getElementById('email').value),
+                assigned_vehicle_id: assignedVehicleID  // Use null for empty vehicle ID
+            };
+    
+            // POST request to server with sanitized data
+            fetch('/drivers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sanitizedData),
+            })
+            // Handling the server's response
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error creating driver');
+                }
+            })
+            .then(data => {
+                alert(`Driver created successfully with ID: ${data.driver_id}`);
+            })
+            .catch(error => {
+                alert('Error creating driver: ' + error.message);
+            });
+        }
+    </script>    
+</head>
+<body>
+    <!-- Form title -->
+    <h1>Create a New Driver</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Driver creation form -->
+    <form id="createDriverForm" onsubmit="handleSubmit(event)">
+        <!-- Name input field -->
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <!-- License number input field -->
+        <label for="license_number">License Number:</label>
+        <input type="text" id="license_number" name="license_number" required>
+
+        <!-- License expiry date input field -->
+        <label for="license_expiry_date">License Expiry Date:</label>
+        <input type="date" id="license_expiry_date" name="license_expiry_date" required>
+
+        <!-- Phone number input field -->
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" required>
+
+        <!-- Email input field -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <!-- Assigned vehicle ID input field -->
+        <label for="assigned_vehicle_id">Assigned Vehicle ID:</label>
+        <input type="number" id="assigned_vehicle_id" name="assigned_vehicle_id">
+
+        <!-- Submit button -->
+        <button type="submit">Create Driver</button>
+    </form>
+</body>
+</html>

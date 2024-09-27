@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Driver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+        }
+    </style>
+    <script>
+        // Utility function to sanitize input
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  
+            return element.innerHTML;
+        }
+
+        // Handle form submission to update driver
+        async function handleUpdate(event) {
+            event.preventDefault();
+
+            const driverId = document.getElementById('driver_id').value;
+            const sanitizedData = {
+                name: sanitizeInput(document.getElementById('name').value),
+                license_number: sanitizeInput(document.getElementById('license_number').value),
+                license_expiry_date: sanitizeInput(document.getElementById('license_expiry_date').value),
+                phone_number: sanitizeInput(document.getElementById('phone_number').value),
+                email: sanitizeInput(document.getElementById('email').value),
+                assigned_vehicle_id: sanitizeInput(document.getElementById('assigned_vehicle_id').value || null)
+            };
+
+            try {
+                const response = await fetch(`/drivers/${driverId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sanitizedData)
+                });
+
+                if (response.ok) {
+                    alert('Driver updated successfully!');
+                } else {
+                    throw new Error('Error updating driver');
+                }
+            } catch (error) {
+                alert('Error updating driver: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('updateDriverForm').addEventListener('submit', handleUpdate);
+        });
+    </script>
+</head>
+<body>
+    <h1>Update Driver</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Prepopulate the form using Jinja2 templating from the backend -->
+    <form id="updateDriverForm">
+        <label for="driver_id">Driver ID:</label>
+        <input type="number" id="driver_id" name="driver_id" value="{{ driver.driver_id }}" readonly required>
+
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" value="{{ driver.name }}" required>
+
+        <label for="license_number">License Number:</label>
+        <input type="text" id="license_number" name="license_number" value="{{ driver.license_number }}" required>
+
+        <label for="license_expiry_date">License Expiry Date:</label>
+        <input type="date" id="license_expiry_date" name="license_expiry_date" value="{{ driver.license_expiry_date }}" required>
+
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" value="{{ driver.phone_number }}" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ driver.email }}" required>
+
+        <label for="assigned_vehicle_id">Assigned Vehicle ID:</label>
+        <input type="number" id="assigned_vehicle_id" name="assigned_vehicle_id" value="{{ driver.assigned_vehicle_id }}">
+
+        <button type="submit">Update Driver</button>
+    </form>
+</body>
+</html>

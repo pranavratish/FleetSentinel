@@ -1,4 +1,4 @@
-import contextlib
+from contextlib import closing
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
 from sqlalchemy import String, or_
@@ -26,7 +26,7 @@ def get_db():
 def with_db(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        with contextlib.closing(next(get_db())) as db:
+        with closing(next(get_db())) as db:
             return f(db, *args, **kwargs)
     return decorated_function
 
@@ -45,27 +45,33 @@ def new_driver_form():
 def drivers_table_form():
     return render_template('driver_search_form.html')
 
-# renders the update driver HTML form
+# renders the update driver HTML form and passes the driver data
 @driver_bp.route('/drivers/<int:driver_id>/update', methods=['GET'])
-def update_driver_form(driver_id):
-    return render_template('driver_update_form.html')
+@with_db
+def update_driver_form(db, driver_id):
+    driver = get_driver(db, driver_id=driver_id)
+    if not_found(driver):
+        return not_found(driver)  # This will return a 404 if the driver isn't found
+    return render_template('driver_update_form.html', driver=driver)  # Pass the driver to the template
 
 # creates a new driver
 @driver_bp.route('/drivers', methods=['POST'])
 @with_db
 def create_driver_endpoint(db):
     data = request.get_json()
-    new_driver = create_driver(db, data)
-    return jsonify(new_driver.to_dict()), 201
+    try:
+        new_driver = create_driver(db, data)
+        return jsonify(new_driver.to_dict()), 201
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
 
 # returns a driver by ID
 @driver_bp.route('/drivers/<int:driver_id>', methods=['GET'])
 @with_db
 def get_driver_by_id_endpoint(db, driver_id):
     driver = get_driver(db, driver_id=driver_id)
-    if not_found(driver):
-        return not_found(driver)
-    return jsonify(driver.to_dict())
+    return not_found(driver) or jsonify(driver.to_dict())  # Simplify the logic
 
 # more accessible search function and table display of rows with pagination
 @driver_bp.route('/drivers/search', methods=['GET'])
@@ -74,7 +80,7 @@ def search_drivers(db):
     search_term = request.args.get('query', '')
 
     # List of attributes to search
-    search_fields = [Driver.first_name, Driver.last_name, Driver.license_number]
+    search_fields = [Driver.name, Driver.license_number, Driver.email]
 
     query = db.query(Driver)
 
@@ -106,9 +112,7 @@ def search_drivers(db):
 def update_driver_endpoint(db, driver_id):
     data = request.get_json()
     updated_driver = update_driver(db, driver_id=driver_id, data=data)
-    if not_found(updated_driver):
-        return not_found(updated_driver)
-    return jsonify(updated_driver.to_dict())
+    return not_found(updated_driver) or jsonify(updated_driver.to_dict())
 
 # deletes a driver
 @driver_bp.route('/drivers/<int:driver_id>', methods=['DELETE'])
