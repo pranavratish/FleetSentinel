@@ -25,6 +25,10 @@ Tasks in the FleetSentinel project are planned using a structured approach that 
 
 <img src="./docs/duringproject.png" width="700" height="300">
 
+### During Project 2
+
+<img src="./docs/progress2.png" width="700" height="300">
+
 ### Dependencies
 
 

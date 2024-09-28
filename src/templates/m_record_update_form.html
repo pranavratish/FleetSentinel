@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Maintenance Record</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+        }
+    </style>
+    <script>
+        let initialRecordData = {};  // Store the initial maintenance record data
+
+        // Utility function to sanitize input
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  // Remove unnecessary spaces and escape HTML
+            return element.innerHTML;
+        }
+
+        // Utility function to fetch data from an API endpoint
+        async function fetchData(url, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            return response.ok ? response.json() : Promise.reject(response.statusText);
+        }
+
+        // Populate form fields with maintenance record data
+        function populateRecordForm(record) {
+            const fields = ['vehicle_id', 'maintenance_type', 'description', 'maintenance_date', 'cost', 'notes'];
+
+            // Format the cost to 2 decimal places
+            document.getElementById('cost').value = parseFloat(record.cost).toFixed(2);
+
+            fields.forEach(field => {
+                document.getElementById(field).value = record[field];
+            });
+        }
+
+
+        // Get only changed fields for update
+        function getChangedFields() {
+            const fields = ['vehicle_id', 'maintenance_type', 'description', 'maintenance_date', 'cost', 'notes'];
+            const changedFields = {};
+            fields.forEach(field => {
+                const currentValue = document.getElementById(field).value;
+                if (currentValue !== initialRecordData[field]) {
+                    changedFields[field] = sanitizeInput(currentValue);
+                }
+            });
+            return changedFields;
+        }
+
+        // Fetch and load the maintenance record data into the form
+        async function loadRecordData(maintenanceId) {
+            try {
+                const record = await fetchData(`/maintenance/${maintenanceId}`);
+                initialRecordData = record;  // Store the initial record data
+                populateRecordForm(record);  // Fill the form with record data
+            } catch (error) {
+                alert('Error fetching maintenance record data: ' + error);
+            }
+        }
+
+        // Handle form submission to update the maintenance record
+        async function handleUpdate(event) {
+            event.preventDefault();
+
+            const maintenanceId = document.getElementById('maintenance_id').value;
+            const changedData = getChangedFields();
+
+            // If no fields have changed, alert the user
+            if (Object.keys(changedData).length === 0) {
+                alert('No changes detected.');
+                return;
+            }
+
+            try {
+                await fetchData(`/maintenance/${maintenanceId}`, 'PUT', changedData);
+                alert('Maintenance record updated successfully!');
+            } catch (error) {
+                alert('Error updating maintenance record: ' + error);
+            }
+        }
+
+        // Attach event listeners after the DOM content is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const maintenanceIdInput = document.getElementById('maintenance_id');
+
+            // Add listener to load record data only when a valid maintenance_id is entered
+            maintenanceIdInput.addEventListener('blur', () => {
+                const maintenanceId = maintenanceIdInput.value;
+                if (maintenanceId) {
+                    loadRecordData(maintenanceId);  // Fetch record data once maintenance ID is provided
+                }
+            });
+
+            document.getElementById('updateRecordForm').addEventListener('submit', handleUpdate);
+        });
+    </script>
+</head>
+<body>
+    <h1>Update Maintenance Record</h1>
+
+    <button onclick="window.location.href='/maintenance/search/form'">Go Back</button>
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Form for updating the maintenance record -->
+    <form id="updateRecordForm">
+        <label for="maintenance_id">Maintenance Record ID (to update):</label>
+        <p style="font-size: 12px; color: #555;">Enter the maintenance record ID to auto-fill the rest of the form.</p>
+        <input type="number" id="maintenance_id" name="maintenance_id" placeholder="Enter Maintenance Record ID" required>
+
+        <label for="vehicle_id">Vehicle ID:</label>
+        <input type="number" id="vehicle_id" name="vehicle_id" required>
+
+        <label for="maintenance_type">Maintenance Type:</label>
+        <input type="text" id="maintenance_type" name="maintenance_type" required>
+
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description" required>
+
+        <label for="maintenance_date">Maintenance Date:</label>
+        <input type="date" id="maintenance_date" name="maintenance_date" required>
+
+        <label for="cost">Cost (in AUD):</label>
+        <input type="number" id="cost" name="cost" step="0.01" required>
+
+        <label for="notes">Notes (optional):</label>
+        <textarea id="notes" name="notes"></textarea>
+
+        <button type="submit">Update Maintenance Record</button>
+    </form>
+</body>
+</html>

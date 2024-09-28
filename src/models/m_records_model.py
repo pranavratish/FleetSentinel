@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, DECIMAL, TIMESTAMP, ForeignKey, Text
 from sqlalchemy.sql import func
 from db.connection import Base
+from datetime import datetime
 
 # Class to build table for Maintenance Records
 class MaintenanceRecord(Base):
@@ -26,7 +27,7 @@ class MaintenanceRecord(Base):
             "maintenance_type": self.maintenance_type,
             "description": self.description,
             "cost": self.cost,
-            "maintenance_date": self.maintenance_date,
+            "maintenance_date": self.maintenance_date.strftime('%Y-%m-%d') if self.maintenance_date else None,
             "notes": self.notes,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

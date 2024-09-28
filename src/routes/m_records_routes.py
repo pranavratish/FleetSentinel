@@ -38,7 +38,20 @@ def not_found(entity, entity_name="Entity"):
 # serves the HTML form for creating a new maintenance record
 @maintenance_bp.route('/maintenance/new', methods=['GET'])
 def new_maintenance_record_form():
-    return render_template('maintenance_record_create_form.html')
+    return render_template('m_record_create_form.html')
+
+@maintenance_bp.route('/maintenance/search/form', methods=['GET'])
+def search_maintenance_form():
+    return render_template('m_record_search_form.html')
+
+# renders the update maintenance record HTML form
+@maintenance_bp.route('/maintenance/<int:record_id>/update', methods=['GET'])
+@with_db
+def update_maintenance_record_form(db, record_id):
+    maintenance_record = get_maintenance_record(db, record_id=record_id)
+    if not maintenance_record:
+        return not_found(maintenance_record, "Maintenance Record")
+    return render_template('m_record_update_form.html', maintenance_record=maintenance_record)
 
 # creates a new maintenance record
 @maintenance_bp.route('/maintenance', methods=['POST'])

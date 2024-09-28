@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Records List & Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .pagination-buttons {
+            margin-top: 20px;
+        }
+
+        .pagination-buttons button {
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .pagination-buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        .pagination-buttons button:disabled {
+            background-color: #ddd;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+    </style>
+    <script>
+        let currentPage = 1;
+        let perPage = 10;
+
+        // Sanitize input to prevent XSS attacks
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input;  // Encode the input as text
+            return element.innerHTML;   // Return sanitized string
+        }
+
+        // Function to display the maintenance record data in a table
+        function displayDataInTable(records) {
+            const recordTableBody = document.getElementById('recordTableBody');
+            recordTableBody.innerHTML = '';  // Clear existing content
+
+            records.forEach(record => {
+                const row = document.createElement('tr');
+
+                // Redirect to the correct update form with the maintenance_id in the URL
+                row.onclick = () => {
+                    window.location.href = `/maintenance/${record.maintenance_id}/update`;
+                };
+
+                row.innerHTML = `
+                    <td>${sanitizeInput(record.maintenance_id)}</td>
+                    <td>${sanitizeInput(record.vehicle_id)}</td>
+                    <td>${sanitizeInput(record.maintenance_type)}</td>
+                    <td>${sanitizeInput(record.description)}</td>
+                    <td>${sanitizeInput(record.maintenance_date)}</td>
+                    <td>${sanitizeInput(record.cost)}</td>
+                    <td>${sanitizeInput(record.notes || 'N/A')}</td>
+                    <td><button class="delete-btn" data-id="${record.maintenance_id}" onclick="event.stopPropagation(); confirmDelete(${record.maintenance_id})">Delete</button></td>
+                `;
+                recordTableBody.appendChild(row);
+            });
+
+            document.getElementById('recordTable').style.display = records.length ? 'table' : 'none';
+        }
+
+        // Function to fetch and display maintenance records from the server
+        async function fetchAndDisplayRecords(url) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const result = await response.json();
+                    displayDataInTable(result.records || result);
+                    document.getElementById('message').innerText = result.page 
+                        ? `Showing page ${result.page} of ${Math.ceil(result.total_records / perPage)}`
+                        : '';
+                } else {
+                    document.getElementById('resultMessage').innerText = 'No records found.';
+                    document.getElementById('recordTable').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
+            }
+        }
+
+        // Function to fetch records based on user-defined page and search query
+        function fetchRecords(page) {
+            fetchAndDisplayRecords(`/maintenance/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
+        }
+
+        // Event listener to initialize form actions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search form submission event
+            document.getElementById('searchRecordForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                fetchRecords(currentPage);
+            });
+
+            // Dropdown to select number of rows per page
+            document.getElementById('rowsPerPage').addEventListener('change', function(event) {
+                perPage = parseInt(event.target.value);
+                fetchRecords(currentPage);
+            });
+
+            // Pagination controls
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchRecords(currentPage);
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                currentPage++;
+                fetchRecords(currentPage);
+            });
+        });
+
+        // Function to handle the deletion of a record with confirmation
+        async function handleDelete(maintenanceId) {
+            try {
+                const response = await fetch(`/maintenance/${maintenanceId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert('Maintenance record deleted successfully!');
+                    fetchRecords(currentPage);  // Refresh the table after deletion
+                } else {
+                    alert('Error deleting maintenance record.');
+                }
+            } catch (error) {
+                alert('Error connecting to the server.');
+            }
+        }
+
+        // Function to confirm deletion before proceeding
+        function confirmDelete(maintenanceId) {
+            if (confirm(`Are you sure you want to delete maintenance record with ID ${maintenanceId}? This action cannot be undone.`)) {
+                handleDelete(maintenanceId);  // Proceed with deletion if confirmed
+            }
+        }
+    </script>    
+</head>
+<body>
+
+    <h1>Maintenance Records List & Search</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Search bar for maintenance records -->
+    <form id="searchRecordForm">
+        <input type="text" id="searchBar" name="query" placeholder="Search for maintenance records..." required>
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- Dropdown to select rows per page -->
+    <label for="rowsPerPage">Rows per page:</label>
+    <select id="rowsPerPage">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+    </select>
+
+    <!-- Maintenance record results table -->
+    <div id="resultMessage"></div>
+    <table id="recordTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Vehicle ID</th>
+                <th>Maintenance Type</th>
+                <th>Description</th>
+                <th>Maintenance Date</th>
+                <th>Cost</th>
+                <th>Notes</th>
+                <th>Action</th> <!-- Action column for delete button -->
+            </tr>
+        </thead>
+        <tbody id="recordTableBody"></tbody>
+    </table>
+
+    <!-- Pagination controls -->
+    <div class="pagination-buttons">
+        <button id="prevPage">Previous Page</button>
+        <button id="nextPage">Next Page</button>
+    </div>
+
+    <p id="message"></p>
+
+</body>
+</html>
