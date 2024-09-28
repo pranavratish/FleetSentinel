@@ -40,6 +40,20 @@ def not_found(entity, entity_name="Entity"):
 def new_route_form():
     return render_template('route_create_form.html')
 
+# serves the HTML form for searching/displaying the existing routes
+@route_bp.route('/routes/search/form', methods=['GET'])
+def search_routes_form():
+    return render_template('route_search_form.html')
+
+# renders the HTML form for updating an existing route and preloads the route data
+@route_bp.route('/routes/<int:route_id>/update', methods=['GET'])
+@with_db
+def update_route_form(db, route_id):
+    route = get_route(db, route_id=route_id)
+    if not route:
+        return jsonify({'error': 'Route not found'}), 404
+    return render_template('route_update_form.html', route=route)
+
 # creates a new route
 @route_bp.route('/routes', methods=['POST'])
 @with_db

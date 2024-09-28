@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Route</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+        }
+    </style>
+    <script>
+        let initialRouteData = {};  // Store the initial route data
+
+        // Utility function to sanitize input
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  // Remove unnecessary spaces and escape HTML
+            return element.innerHTML;
+        }
+
+        // Utility function to fetch data from an API endpoint
+        async function fetchData(url, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            return response.ok ? response.json() : Promise.reject(response.statusText);
+        }
+
+        // Populate form fields with route data
+        function populateRouteForm(route) {
+            document.getElementById('origin').value = route.origin;
+            document.getElementById('destination').value = route.destination;
+            document.getElementById('distance').value = route.distance;
+
+            const durationInMinutes = route.estimated_duration;
+            const hours = Math.floor(durationInMinutes / 60);
+            const minutes = durationInMinutes % 60;
+
+            document.getElementById('estimated_duration_hours').value = hours;
+            document.getElementById('estimated_duration_minutes').value = minutes;
+        }
+
+        // Get only changed fields for update
+        function getChangedFields() {
+            const changedFields = {};
+            const fields = ['origin', 'destination', 'distance'];
+            fields.forEach(field => {
+                const currentValue = document.getElementById(field).value;
+                if (currentValue !== initialRouteData[field]) {
+                    changedFields[field] = sanitizeInput(currentValue);
+                }
+            });
+
+            // Combine hours and minutes into total minutes for estimated_duration
+            const hours = parseInt(document.getElementById('estimated_duration_hours').value) || 0;
+            const minutes = parseInt(document.getElementById('estimated_duration_minutes').value) || 0;
+            const totalMinutes = (hours * 60) + minutes;
+            if (totalMinutes !== initialRouteData.estimated_duration) {
+                changedFields.estimated_duration = totalMinutes;
+            }
+
+            return changedFields;
+        }
+
+        // Fetch and load the route data into the form
+        async function loadRouteData(routeId) {
+            try {
+                const route = await fetchData(`/routes/${routeId}`);
+                initialRouteData = route;  // Store the initial route data
+                populateRouteForm(route);  // Fill the form with route data
+            } catch (error) {
+                alert('Error fetching route data: ' + error);
+            }
+        }
+
+        // Handle form submission to update route
+        async function handleUpdate(event) {
+            event.preventDefault();
+
+            const routeId = document.getElementById('route_id').value;
+            const changedData = getChangedFields();
+
+            // If no fields have changed, alert the user
+            if (Object.keys(changedData).length === 0) {
+                alert('No changes detected.');
+                return;
+            }
+
+            try {
+                await fetchData(`/routes/${routeId}`, 'PUT', changedData);
+                alert('Route updated successfully!');
+            } catch (error) {
+                alert('Error updating route: ' + error);
+            }
+        }
+
+        // Attach event listeners after the DOM content is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const routeIdInput = document.getElementById('route_id');
+
+            // Add listener to load route data only when a valid route_id is entered
+            routeIdInput.addEventListener('blur', () => {
+                const routeId = routeIdInput.value;
+                if (routeId) {
+                    loadRouteData(routeId);  // Fetch route data once route ID is provided
+                }
+            });
+
+            document.getElementById('updateRouteForm').addEventListener('submit', handleUpdate);
+        });
+    </script>
+</head>
+<body>
+    <h1>Update Route</h1>
+
+    <button onclick="window.location.href='/routes/search/form'">Go Back</button>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Form for updating the route -->
+    <form id="updateRouteForm">
+        <label for="route_id">Route ID (to update):</label>
+        <p style="font-size: 12px; color: #555;">Enter the route ID to auto-fill the rest of the form.</p>
+        <input type="number" id="route_id" name="route_id" placeholder="Enter Route ID" required>
+
+        <label for="origin">Origin:</label>
+        <input type="text" id="origin" name="origin" required>
+
+        <label for="destination">Destination:</label>
+        <input type="text" id="destination" name="destination" required>
+
+        <label for="distance">Distance (in km, only numbers):</label>
+        <input type="number" id="distance" name="distance" required>
+
+        <label for="estimated_duration_hours">Estimated Duration (Hours):</label>
+        <input type="number" id="estimated_duration_hours" name="estimated_duration_hours" min="0" step="1" required>
+
+        <label for="estimated_duration_minutes">Estimated Duration (Minutes):</label>
+        <input type="number" id="estimated_duration_minutes" name="estimated_duration_minutes" min="0" step="1" required>
+
+        <button type="submit">Update Route</button>
+    </form>
+</body>
+</html>

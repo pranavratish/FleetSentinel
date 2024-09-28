@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route List & Search</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            color: #333;
+        }
+
+        table th {
+            background-color: #007BFF;
+            color: white;
+            font-weight: bold;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        table tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .pagination-buttons button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .pagination-buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        .pagination-buttons button:disabled {
+            background-color: #ddd;
+        }
+
+        #message {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+    </style>
+    <script>
+        let currentPage = 1;
+        let perPage = 10;
+    
+        // Sanitize input before use to prevent potential XSS attacks
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input;  
+            return element.innerHTML;
+        }
+    
+        // Utility function to handle data display
+        function displayDataInTable(routes) {
+            const routeTableBody = document.getElementById('routeTableBody');
+            routeTableBody.innerHTML = ''; 
+    
+            routes.forEach(route => {
+                const row = document.createElement('tr');
+    
+                // Make row clickable to navigate to update route page
+                row.onclick = () => {
+                    window.location.href = `/routes/${route.route_id}/update`;
+                };
+    
+                row.innerHTML = `
+                    <td>${route.route_id}</td>
+                    <td>${route.origin}</td>
+                    <td>${route.destination}</td>
+                    <td>${route.distance}</td>
+                    <td>${route.estimated_duration}</td>
+                    <td>${route.created_at}</td>
+                    <td><button class="delete-btn" data-id="${route.route_id}" onclick="event.stopPropagation(); confirmDelete(${route.route_id})">Delete</button></td>
+                `;  // Added delete button for each route
+                routeTableBody.appendChild(row);
+            });
+    
+            document.getElementById('routeTable').style.display = routes.length ? 'table' : 'none';
+        }
+    
+        // Utility function to fetch and handle response
+        async function fetchAndDisplayRoutes(url) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const result = await response.json();
+                    displayDataInTable(result.routes || result);
+                    document.getElementById('message').innerText = result.page 
+                        ? `Showing page ${result.page} of ${Math.ceil(result.total_routes / perPage)}`
+                        : '';
+                } else {
+                    document.getElementById('resultMessage').innerText = 'No routes found.';
+                    document.getElementById('routeTable').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
+            }
+        }
+    
+        // Function to fetch routes with user-defined per page value
+        function fetchRoutes(page) {
+            fetchAndDisplayRoutes(`/routes/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
+        }
+    
+        // Handle delete operation with confirmation
+        async function handleDelete(routeId) {
+            try {
+                const response = await fetch(`/routes/${routeId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert('Route deleted successfully!');
+                    // Refresh the table after deletion
+                    fetchRoutes(currentPage);
+                } else {
+                    alert('Error deleting route.');
+                }
+            } catch (error) {
+                alert('Error connecting to the server.');
+            }
+        }
+    
+        // Function to confirm deletion
+        function confirmDelete(routeId) {
+            if (confirm(`Are you sure you want to delete route with ID ${routeId}? This action cannot be undone.`)) {
+                handleDelete(routeId);  // Proceed with deletion if confirmed
+            }
+        }
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchRouteForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                fetchRoutes(currentPage);
+            });
+    
+            document.getElementById('rowsPerPage').addEventListener('change', function(event) {
+                perPage = parseInt(event.target.value);
+                fetchRoutes(currentPage);
+            });
+    
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    fetchRoutes(currentPage);
+                }
+            });
+    
+            document.getElementById('nextPage').addEventListener('click', () => {
+                currentPage++;
+                fetchRoutes(currentPage);
+            });
+        });
+    </script>    
+</head>
+<body>
+
+    <h1>Route List & Search</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+    
+    <!-- General search bar -->
+    <form id="searchRouteForm">
+        <input type="text" id="searchBar" name="query" placeholder="Search for routes..." required>
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- Dropdown to select the number of rows per page -->
+    <label for="rowsPerPage">Rows per page:</label>
+    <select id="rowsPerPage">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+    </select>
+
+    <!-- Display search result and table -->
+    <div id="resultMessage"></div>
+    <table id="routeTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Origin</th>
+                <th>Destination</th>
+                <th>Distance</th>
+                <th>Estimated Duration</th>
+                <th>Created At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="routeTableBody"></tbody>
+    </table>
+
+    <!-- Pagination buttons -->
+    <div class="pagination-buttons">
+        <button id="prevPage">Previous Page</button>
+        <button id="nextPage">Next Page</button>
+    </div>
+
+    <!-- Message showing current page and status -->
+    <p id="message"></p>
+
+</body>
+</html>

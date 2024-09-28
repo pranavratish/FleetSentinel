@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Route</title>
+    <style>
+        /* Body styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        /* Center the title */
+        h1 {
+            text-align: center;
+        }
+
+        /* Form container with padding, shadow, and background color */
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Label styling */
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* Input and select field styling */
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        /* Submit button styling */
+        button {
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Button hover state */
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Disabled button styling */
+        button:disabled {
+            background-color: #ddd;
+        }
+
+    </style>
+    <script>
+        // Utility function to sanitize input for client-side safety
+        function sanitizeInput(input) {
+            const element = document.createElement('div');
+            element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
+            return element.innerHTML;
+        }
+
+        // Function to convert estimated duration into minutes
+        function convertDurationToMinutes(hours, minutes) {
+            let totalMinutes = 0;
+            if (hours) {
+                totalMinutes += parseInt(hours) * 60;  // Convert hours to minutes
+            }
+            if (minutes) {
+                totalMinutes += parseInt(minutes);  // Add minutes
+            }
+            return totalMinutes;
+        }
+
+        // Function to handle form submission and sanitize the data
+        function handleSubmit(event) {
+            event.preventDefault();  // Prevents default form submission
+
+            // Collecting and sanitizing form data
+            const hours = sanitizeInput(document.getElementById('estimated_duration_hours').value);
+            const minutes = sanitizeInput(document.getElementById('estimated_duration_minutes').value);
+
+            const sanitizedData = {
+                origin: sanitizeInput(document.getElementById('origin').value),
+                destination: sanitizeInput(document.getElementById('destination').value),
+                distance: sanitizeInput(document.getElementById('distance').value),
+                estimated_duration: convertDurationToMinutes(hours, minutes),  // Convert to total minutes
+            };
+
+            // POST request to server with sanitized data
+            fetch('/routes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sanitizedData),
+            })
+            // Handling the server's response
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error creating route');
+                }
+            })
+            .then(data => {
+                alert(`Route created successfully with ID: ${data.route_id}`);
+            })
+            .catch(error => {
+                alert('Error creating route: ' + error.message);
+            });
+        }
+    </script>    
+</head>
+<body>
+    <!-- Form title -->
+    <h1>Create a New Route</h1>
+
+    <button onclick="window.location.href='/'">Back to Home</button>
+
+    <!-- Route creation form -->
+    <form id="createRouteForm" onsubmit="handleSubmit(event)">
+        <!-- Origin input field -->
+        <label for="origin">Origin:</label>
+        <input type="text" id="origin" name="origin" required>
+
+        <!-- Destination input field -->
+        <label for="destination">Destination:</label>
+        <input type="text" id="destination" name="destination" required>
+
+        <!-- Distance input field -->
+        <label for="distance">Distance (in km, only numbers):</label>
+        <input type="number" step="0.01" id="distance" name="distance" required>
+
+        <!-- Estimated duration input fields for hours and minutes -->
+        <label for="estimated_duration_hours">Estimated Duration (only numbers):</label>
+        <input type="number" id="estimated_duration_hours" name="estimated_duration_hours" placeholder="Hours">
+        <input type="number" id="estimated_duration_minutes" name="estimated_duration_minutes" placeholder="Minutes">
+
+        <!-- Submit button -->
+        <button type="submit">Create Route</button>
+    </form>
+</body>
+</html>
