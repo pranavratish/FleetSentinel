@@ -68,6 +68,35 @@
             return element.innerHTML;
         }
 
+        // Function to fetch vehicle mileage based on vehicle ID
+        async function fetchVehicleMileage(vehicleId) {
+            try {
+                const response = await fetch(`/vehicles/${vehicleId}/mileage`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.mileage) {
+                        document.getElementById('mileage_start').value = data.mileage;  // Set the mileage start value
+                    } else {
+                        alert('Vehicle not found.');
+                    }
+                } else {
+                    alert('Error fetching vehicle mileage.');
+                }
+            } catch (error) {
+                alert('Error connecting to the server.');
+            }
+        }
+
+        // Event listener to fetch vehicle mileage when vehicle ID is entered
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('vehicle_id').addEventListener('blur', function() {
+                const vehicleId = sanitizeInput(this.value);
+                if (vehicleId) {
+                    fetchVehicleMileage(vehicleId);
+                }
+            });
+        });
+
         // Function to handle form submission and sanitize the data
         function handleSubmit(event) {
             event.preventDefault();  // Prevents default form submission
@@ -147,7 +176,7 @@
         <input type="number" id="mileage_end" name="mileage_end">
 
         <!-- Status input field -->
-        <label for="status">Status:</label>
+        <label for="status">Status (e.g. Pending, In Progress, Completed):</label>
         <input type="text" id="status" name="status" required>
 
         <!-- Notes input field -->

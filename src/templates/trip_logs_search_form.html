@@ -140,10 +140,16 @@
             }
         }
 
-        // Function to fetch trip logs based on user-defined page and search query
+        // Function to fetch trip logs based on user-defined page, search query, filter, and sort options
         function fetchTripLogs(page) {
             const query = sanitizeInput(document.getElementById('searchBar').value);
-            fetchAndDisplayTripLogs(`/trip_logs/search?query=${query}&page=${page}&per_page=${perPage}`);
+            const filterStatus = document.getElementById('filterByStatus').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+
+            // Construct the URL with query, filter, and sorting parameters
+            const searchUrl = `/trip_logs/search?query=${query}&filterByStatus=${filterStatus}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
+            fetchAndDisplayTripLogs(searchUrl);
         }
 
         // Event listener to initialize form actions
@@ -208,6 +214,32 @@
     <!-- Search bar for trip logs -->
     <form id="searchTripLogForm">
         <input type="text" id="searchBar" name="query" placeholder="Search for trip logs..." required>
+
+        <!-- Filter by Status -->
+        <label for="filterByStatus">Filter by Status:</label>
+        <select id="filterByStatus">
+            <option value="">-- All --</option>
+            <option value="completed">Completed</option>
+            <option value="in_progress">In Progress</option>
+            <option value="pending">Pending</option>
+        </select>
+
+        <!-- Sorting options -->
+        <label for="sortBy">Sort By:</label>
+        <select id="sortBy">
+            <option value="">-- Select --</option>
+            <option value="start_time">Start Time</option>
+            <option value="end_time">End Time</option>
+            <option value="mileage_start">Mileage Start</option>
+        </select>
+
+        <!-- Sort order (asc/desc) -->
+        <label for="sortOrder">Sort Order:</label>
+        <select id="sortOrder">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+        </select>
+
         <button type="submit">Search</button>
     </form>
 

@@ -111,6 +111,16 @@ def search_vehicles(db):
         'vehicles': [vehicle.to_dict() for vehicle in vehicles]
     })
 
+# Endpoint to get the mileage of a vehicle by ID
+@vehicle_bp.route('/vehicles/<int:vehicle_id>/mileage', methods=['GET'])
+def get_vehicle_mileage(vehicle_id):
+    db = next(get_db())
+    vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
+
+    if vehicle:
+        return jsonify({'mileage': vehicle.mileage})
+    return jsonify({'error': 'Vehicle not found'}), 404
+
 # updates a vehicle's details (supports partial updates)
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['PUT'])
 @with_db

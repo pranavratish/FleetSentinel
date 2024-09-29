@@ -1,9 +1,12 @@
+import json
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify, current_app
 from sqlalchemy import or_, String
 from db.connection import SessionLocal
 from models.trip_logs_model import TripLog
+from models.vehicle_model import Vehicle
+from services.filtering_services import filter_records
 from services.trip_logs_services import (
     create_trip_log,
     get_trip_log,
@@ -55,13 +58,33 @@ def update_trip_log_form(db, trip_id):
         return jsonify({'error': 'Trip log not found'}), 404
     return render_template('trip_logs_update_form.html', trip_log=trip_log)
 
-# creates a new trip log
+# Trip log creation endpoint
 @trip_log_bp.route('/trip_logs', methods=['POST'])
-@with_db
-def create_trip_log_endpoint(db):
+def create_trip_log():
+    db = next(get_db())
     data = request.get_json()
-    new_trip_log = create_trip_log(db, data)
-    return jsonify(new_trip_log.to_dict()), 201
+
+    try:
+        # Create the trip log
+        new_trip = TripLog(**data)
+        db.add(new_trip)
+        db.commit()
+        db.refresh(new_trip)
+
+        # Update the vehicle's mileage if mileage_end is provided
+        if new_trip.mileage_end:
+            vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == new_trip.vehicle_id).first()
+            if vehicle:
+                vehicle.mileage = new_trip.mileage_end
+                db.commit()
+
+        return jsonify(new_trip.to_dict()), 201
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 400
+    finally:
+        db.close()
 
 # returns a trip log by ID
 @trip_log_bp.route('/trip_logs/<int:trip_id>', methods=['GET'])
@@ -80,7 +103,7 @@ def search_trip_logs(db):
     search_term = request.args.get('query', '')
 
     # List of attributes to search
-    search_fields = [TripLog.start_location, TripLog.end_location, TripLog.status]
+    search_fields = [TripLog.trip_id, TripLog.driver_id, TripLog.vehicle_id, TripLog.status]
 
     query = db.query(TripLog)
 
@@ -116,23 +139,59 @@ def search_trip_logs(db):
         'trip_logs': [trip_log.to_dict() for trip_log in trip_logs]
     })
 
+@trip_log_bp.route('/trip_logs', methods=['GET'])
+def get_filtered_sorted_trips():
+    db = SessionLocal()
+    
+    # Get filters and sorting parameters from the request
+    filters = request.args.get('filters', '{}')
+    sort = request.args.get('sort', '{}')
+    
+    # Convert JSON strings into Python dictionaries
+    filter_params = json.loads(filters)
+    sort_params = json.loads(sort)
+    
+    query = db.query(TripLog)
+    
+    # Apply filtering and sorting
+    query = filter_records(query, filter_params, sort_params, TripLog)
+    
+    # Execute the query and return results
+    trips = query.all()
+    return jsonify([trip.to_dict() for trip in trips])
+
 # updates a trip log's details (supports partial updates)
 @trip_log_bp.route('/trip_logs/<int:trip_id>', methods=['PUT'])
-@with_db
-def update_trip_log_endpoint(db, trip_id):
-    # Get the data from the request
+def update_trip_log(trip_id):
+    db = next(get_db())
     data = request.get_json()
 
-    # Call the update_trip_log function from the service
-    updated_trip_log = update_trip_log(db, trip_id=trip_id, data=data)
+    try:
+        # Find the trip log
+        trip_log = db.query(TripLog).filter(TripLog.trip_id == trip_id).first()
+        if not trip_log:
+            return jsonify({'error': 'Trip log not found'}), 404
 
-    # If the trip log doesn't exist, handle the "not found" case
-    not_found = trip_log_not_found_response(updated_trip_log)
-    if not_found:
-        return not_found
+        # Update the trip log fields
+        for key, value in data.items():
+            setattr(trip_log, key, value)
+        
+        db.commit()
 
-    # Return the updated trip log as a JSON response
-    return jsonify(updated_trip_log.to_dict())
+        # Update the vehicle's mileage if mileage_end is provided
+        if trip_log.mileage_end:
+            vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == trip_log.vehicle_id).first()
+            if vehicle:
+                vehicle.mileage = trip_log.mileage_end
+                db.commit()
+
+        return jsonify(trip_log.to_dict()), 200
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 400
+    finally:
+        db.close()
 
 # deletes a trip log
 @trip_log_bp.route('/trip_logs/<int:trip_id>', methods=['DELETE'])

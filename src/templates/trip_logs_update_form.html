@@ -59,6 +59,27 @@
             return element.innerHTML;
         }
 
+        // Fetch current vehicle mileage based on vehicle_id
+        async function fetchVehicleMileage(vehicleId) {
+            try {
+                const response = await fetch(`/vehicles/${vehicleId}/mileage`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('mileage_start').value = data.mileage;
+                } else {
+                    console.error('Failed to fetch vehicle mileage');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Prepopulate the form and fetch current vehicle mileage
+        function preloadForm() {
+            const vehicleId = document.getElementById('vehicle_id').value;
+            fetchVehicleMileage(vehicleId); // Fetch current mileage when the form loads
+        }
+
         // Handle form submission to update trip log
         async function handleUpdate(event) {
             event.preventDefault();
@@ -94,6 +115,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            preloadForm();  // Preload vehicle mileage on page load
             document.getElementById('updateTripLogForm').addEventListener('submit', handleUpdate);
         });
     </script>
@@ -110,7 +132,7 @@
         <input type="number" id="trip_id" name="trip_id" value="{{ trip_log.trip_id }}" readonly required>
 
         <label for="vehicle_id">Vehicle ID:</label>
-        <input type="number" id="vehicle_id" name="vehicle_id" value="{{ trip_log.vehicle_id }}" required>
+        <input type="number" id="vehicle_id" name="vehicle_id" value="{{ trip_log.vehicle_id }}" required onchange="fetchVehicleMileage(this.value)">
 
         <label for="driver_id">Driver ID:</label>
         <input type="number" id="driver_id" name="driver_id" value="{{ trip_log.driver_id }}" required>
@@ -130,7 +152,7 @@
         <label for="mileage_end">Mileage End:</label>
         <input type="number" id="mileage_end" name="mileage_end" value="{{ trip_log.mileage_end }}">
 
-        <label for="status">Status:</label>
+        <label for="status">Status (e.g. Pending, In Progress, Completed):</label>
         <input type="text" id="status" name="status" value="{{ trip_log.status }}" required>
 
         <label for="notes">Notes:</label>
