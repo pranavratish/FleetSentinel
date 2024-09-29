@@ -1,6 +1,7 @@
 from contextlib import closing
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import String, or_, asc, desc
 from db.connection import SessionLocal
 from models.driver_model import Driver
@@ -48,6 +49,7 @@ def drivers_table_form():
 # renders the update driver HTML form and passes the driver data
 @driver_bp.route('/drivers/<int:driver_id>/update', methods=['GET'])
 @with_db
+@jwt_required()
 def update_driver_form(db, driver_id):
     driver = get_driver(db, driver_id=driver_id)
     if not_found(driver):
@@ -57,6 +59,7 @@ def update_driver_form(db, driver_id):
 # creates a new driver
 @driver_bp.route('/drivers', methods=['POST'])
 @with_db
+@jwt_required()
 def create_driver_endpoint(db):
     data = request.get_json()
     try:
@@ -68,6 +71,7 @@ def create_driver_endpoint(db):
 # returns a driver by ID
 @driver_bp.route('/drivers/<int:driver_id>', methods=['GET'])
 @with_db
+@jwt_required()
 def get_driver_by_id_endpoint(db, driver_id):
     driver = get_driver(db, driver_id=driver_id)
     return not_found(driver) or jsonify(driver.to_dict())  # Simplify the logic
@@ -123,6 +127,7 @@ def search_drivers(db):
 # updates a driver's details (supports partial updates)
 @driver_bp.route('/drivers/<int:driver_id>', methods=['PUT'])
 @with_db
+@jwt_required()
 def update_driver_endpoint(db, driver_id):
     data = request.get_json()
     updated_driver = update_driver(db, driver_id=driver_id, data=data)
@@ -131,6 +136,7 @@ def update_driver_endpoint(db, driver_id):
 # deletes a driver
 @driver_bp.route('/drivers/<int:driver_id>', methods=['DELETE'])
 @with_db
+@jwt_required()
 def delete_driver_endpoint(db, driver_id):
     deleted_driver = delete_driver(db, driver_id=driver_id)
     if not_found(deleted_driver):

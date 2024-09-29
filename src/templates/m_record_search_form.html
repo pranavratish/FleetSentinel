@@ -76,6 +76,17 @@
             font-weight: bold;
         }
 
+        /* Styles for user login status */
+        .login-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
     </style>
     <script>
         let currentPage = 1;
@@ -150,6 +161,13 @@
 
         // Event listener to initialize form actions
         document.addEventListener('DOMContentLoaded', function() {
+            // Show login status
+            const token = localStorage.getItem('accessToken');
+            const loginStatus = document.createElement('div');
+            loginStatus.className = 'login-status';
+            loginStatus.innerText = token ? 'Logged in' : 'Not logged in';
+            document.body.appendChild(loginStatus);
+
             // Search form submission event
             document.getElementById('searchRecordForm').addEventListener('submit', function(event) {
                 event.preventDefault();
@@ -186,9 +204,19 @@
 
         // Function to handle the deletion of a record with confirmation
         async function handleDelete(maintenanceId) {
+            const token = localStorage.getItem('accessToken');  // Get token from localStorage
+
+            if (!token) {
+                alert('You must be logged in to delete a maintenance record.');
+                return;
+            }
+
             try {
                 const response = await fetch(`/maintenance/${maintenanceId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,  // Add Authorization header
+                    }
                 });
                 if (response.ok) {
                     alert('Maintenance record deleted successfully!');

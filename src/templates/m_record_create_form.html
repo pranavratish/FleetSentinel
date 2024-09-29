@@ -59,6 +59,36 @@
             background-color: #ddd;
         }
 
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         // Utility function to sanitize input for client-side safety
@@ -69,8 +99,15 @@
         }
 
         // Function to handle form submission and sanitize the data
-        function handleSubmit(event) {
+        async function handleSubmit(event) {
             event.preventDefault();  // Prevents default form submission
+
+            // Get the JWT token from localStorage
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                alert('You must be logged in to create a maintenance record.');
+                return;
+            }
 
             // Collecting and sanitizing form data
             const sanitizedData = {
@@ -83,11 +120,12 @@
                 notes: sanitizeInput(document.getElementById('notes').value),
             };
 
-            // POST request to server with sanitized data
+            // POST request to server with sanitized data and JWT token
             fetch('/maintenance', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
                 },
                 body: JSON.stringify(sanitizedData),
             })
@@ -106,9 +144,41 @@
                 alert('Error creating maintenance record: ' + error.message);
             });
         }
-    </script>    
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthStatus(); // Update the login status banner on page load
+        });
+
+        // Check if user is logged in and update the UI
+        function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    </script>
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <!-- Form title -->
     <h1>Create a New Maintenance Record</h1>
 

@@ -8,6 +8,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(150), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), default='user')
 
     def set_pass(self, password):
         self.password_hash = generate_password_hash(password)

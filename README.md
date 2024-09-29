@@ -1,5 +1,23 @@
 # FleetSentinel
 
+## Set Up
+
+Change the variables in the .env file to your liking if you want to (if you receive this as a zip file and not on git). 
+
+The command to migrate the databases so that you can have the same DB infrastructure on your local system is:
+
+```bash
+alembic revision --autogenerate -m"initial db setup"
+```
+
+and then:
+
+```bash
+python3 scripts/load_env.py && alembic upgrade head
+```
+
+The first user created on the local database will automatically be the admin, this is the only user that can register other users.
+
 ## Mission Statement
 
 FleetSentinel addresses inefficiencies in fleet management, focusing on centralising vehicle data and maintenance tracking. Australian fleets can lose up to $760 per day due to vehicle downtime, with unexpected breakdowns contributing significantly to this cost. Research shows that preventative maintenance can reduce downtime by 20%, further cutting operational costs.

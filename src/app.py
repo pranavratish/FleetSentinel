@@ -7,6 +7,7 @@ from routes.driver_routes import driver_bp
 from routes.trip_logs_routes import trip_log_bp
 from routes.routes_routes import route_bp
 from routes.m_records_routes import maintenance_bp
+from routes.auth_routes import auth_bp
 
 # load env variables
 load_dotenv()
@@ -31,6 +32,9 @@ app.register_blueprint(route_bp)
 
 # register blueprint for maintenance endpoints
 app.register_blueprint(maintenance_bp)
+
+# register blueprint for auth endpoints
+app.register_blueprint(auth_bp)
 
 # home page route
 @app.route('/')
