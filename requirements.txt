@@ -3,3 +3,5 @@ SQLAlchemy
 psycopg2-binary
 Alembic
 python-dotenv
+pyjwt
+Flask-JWT-Extended
