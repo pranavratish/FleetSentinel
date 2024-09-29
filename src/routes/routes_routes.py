@@ -1,7 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
-from sqlalchemy import or_, String
+from sqlalchemy import or_, String, asc, desc
 from db.connection import SessionLocal
 from models.routes_model import Route
 from services.routes_services import (
@@ -84,26 +84,38 @@ def delete_route_endpoint(db, route_id):
     deleted_route = delete_route(db, route_id=route_id)
     return not_found(deleted_route, "Route") or jsonify({'message': 'Route deleted successfully'})
 
-# more accessible search function and table display of rows with pagination
+# more accessible search, filtering, sorting, and table display of rows with pagination
 @route_bp.route('/routes/search', methods=['GET'])
 @with_db
 def search_routes(db):
     search_term = request.args.get('query', '')
+    sort_by = request.args.get('sortBy', 'route_id')  # Default sort by route ID
+    sort_order = request.args.get('sortOrder', 'asc')  # Default sort order ascending
 
-    # List of attributes to search
-    search_fields = [Route.route_id, Route.origin, Route.destination]
+    # List of attributes to search for string fields
+    search_fields = [Route.origin, Route.destination]
 
     query = db.query(Route)
 
     # Search for the term in all specified fields
     if search_term:
         search_filters = []
-        for field in search_fields:
-            if isinstance(field.type, String):
-                search_filters.append(field.ilike(f"%{search_term}%"))
 
-        # Apply all search filters with OR logic
+        # Check if the search term is numeric to filter by route_id
+        if search_term.isdigit():
+            search_filters.append(Route.route_id == int(search_term))
+
+        # Apply ILIKE for string fields
+        for field in search_fields:
+            search_filters.append(field.ilike(f"%{search_term}%"))
+        
         query = query.filter(or_(*search_filters))
+
+    # Apply sorting
+    if sort_order == 'asc':
+        query = query.order_by(asc(getattr(Route, sort_by)))
+    else:
+        query = query.order_by(desc(getattr(Route, sort_by)))
 
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)

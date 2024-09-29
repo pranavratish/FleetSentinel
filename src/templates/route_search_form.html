@@ -5,42 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route List & Search</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-family: Arial, sans-serif;
         }
 
         table th, table td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 10px;
             text-align: left;
-            color: #333;
         }
 
         table th {
             background-color: #007BFF;
             color: white;
-            font-weight: bold;
         }
 
         table tr:nth-child(even) {
             background-color: #f2f2f2;
         }
 
-        table tr:hover {
-            background-color: #e9ecef;
+        .pagination-buttons {
+            margin-top: 20px;
         }
 
         .pagination-buttons button {
-            padding: 10px 20px;
+            padding: 10px 15px;
             background-color: #007BFF;
             color: white;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            margin-right: 5px;
         }
 
         .pagination-buttons button:hover {
@@ -55,50 +74,49 @@
             margin-top: 10px;
             font-size: 16px;
             font-weight: bold;
-            color: #333;
         }
 
     </style>
     <script>
         let currentPage = 1;
         let perPage = 10;
-    
-        // Sanitize input before use to prevent potential XSS attacks
+
+        // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
             element.innerText = input;  
-            return element.innerHTML;
+            return element.innerHTML;   // Return sanitized string
         }
-    
-        // Utility function to handle data display
+
+        // Utility function to display route data in a table
         function displayDataInTable(routes) {
             const routeTableBody = document.getElementById('routeTableBody');
-            routeTableBody.innerHTML = ''; 
-    
+            routeTableBody.innerHTML = '';  // Clear existing content
+
             routes.forEach(route => {
                 const row = document.createElement('tr');
-    
-                // Make row clickable to navigate to update route page
+
+                // Make row clickable to navigate to the update route page
                 row.onclick = () => {
                     window.location.href = `/routes/${route.route_id}/update`;
                 };
-    
+
                 row.innerHTML = `
-                    <td>${route.route_id}</td>
-                    <td>${route.origin}</td>
-                    <td>${route.destination}</td>
-                    <td>${route.distance}</td>
-                    <td>${route.estimated_duration}</td>
-                    <td>${route.created_at}</td>
+                    <td>${sanitizeInput(route.route_id)}</td>
+                    <td>${sanitizeInput(route.origin)}</td>
+                    <td>${sanitizeInput(route.destination)}</td>
+                    <td>${sanitizeInput(route.distance)}</td>
+                    <td>${sanitizeInput(route.estimated_duration)}</td>
+                    <td>${sanitizeInput(route.created_at)}</td>
                     <td><button class="delete-btn" data-id="${route.route_id}" onclick="event.stopPropagation(); confirmDelete(${route.route_id})">Delete</button></td>
-                `;  // Added delete button for each route
+                `;
                 routeTableBody.appendChild(row);
             });
-    
+
             document.getElementById('routeTable').style.display = routes.length ? 'table' : 'none';
         }
-    
-        // Utility function to fetch and handle response
+
+        // Fetch and display route data from the server
         async function fetchAndDisplayRoutes(url) {
             try {
                 const response = await fetch(url);
@@ -116,12 +134,17 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-    
-        // Function to fetch routes with user-defined per page value
+
+        // Fetch routes based on user-defined page and search query, add filtering/sorting
         function fetchRoutes(page) {
-            fetchAndDisplayRoutes(`/routes/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
+            const searchQuery = sanitizeInput(document.getElementById('searchBar').value);
+            const sortBy = sanitizeInput(document.getElementById('sortBy').value);
+            const sortOrder = sanitizeInput(document.getElementById('sortOrder').value);
+
+            const url = `/routes/search?query=${searchQuery}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
+            fetchAndDisplayRoutes(url);
         }
-    
+
         // Handle delete operation with confirmation
         async function handleDelete(routeId) {
             try {
@@ -130,8 +153,7 @@
                 });
                 if (response.ok) {
                     alert('Route deleted successfully!');
-                    // Refresh the table after deletion
-                    fetchRoutes(currentPage);
+                    fetchRoutes(currentPage);  // Refresh the table after deletion
                 } else {
                     alert('Error deleting route.');
                 }
@@ -139,50 +161,69 @@
                 alert('Error connecting to the server.');
             }
         }
-    
-        // Function to confirm deletion
+
+        // Confirm deletion before proceeding
         function confirmDelete(routeId) {
             if (confirm(`Are you sure you want to delete route with ID ${routeId}? This action cannot be undone.`)) {
                 handleDelete(routeId);  // Proceed with deletion if confirmed
             }
         }
-    
+
+        // Initialize form actions when the DOM content is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
+            // Search form submission event
             document.getElementById('searchRouteForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchRoutes(currentPage);
             });
-    
+
+            // Rows per page dropdown event
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchRoutes(currentPage);
             });
-    
+
+            // Pagination controls
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     fetchRoutes(currentPage);
                 }
             });
-    
+
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchRoutes(currentPage);
             });
         });
-    </script>    
+    </script>
 </head>
 <body>
 
     <h1>Route List & Search</h1>
 
     <button onclick="window.location.href='/'">Back to Home</button>
-    
-    <!-- General search bar -->
+
+    <!-- Search form for routes -->
     <form id="searchRouteForm">
         <input type="text" id="searchBar" name="query" placeholder="Search for routes..." required>
         <button type="submit">Search</button>
     </form>
+
+    <!-- Dropdown to select sorting options -->
+    <label for="sortBy">Sort by:</label>
+    <select id="sortBy">
+        <option value="route_id">ID</option>
+        <option value="origin">Origin</option>
+        <option value="destination">Destination</option>
+    </select>
+
+    <!-- Dropdown to select sorting order -->
+    <label for="sortOrder">Order:</label>
+    <select id="sortOrder">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+    </select>
 
     <!-- Dropdown to select the number of rows per page -->
     <label for="rowsPerPage">Rows per page:</label>
