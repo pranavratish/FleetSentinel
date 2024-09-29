@@ -1,7 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
-from sqlalchemy import or_, String
+from sqlalchemy import or_, String, asc, desc
 from db.connection import SessionLocal
 from models.m_records_model import MaintenanceRecord
 from services.m_records_services import (
@@ -86,26 +86,38 @@ def delete_maintenance_record_endpoint(db, record_id):
     deleted_record = delete_maintenance_record(db, record_id=record_id)
     return not_found(deleted_record, "Maintenance Record") or jsonify({'message': 'Maintenance record deleted successfully'})
 
-# more accessible search function and table display of rows with pagination
+# more accessible search, filtering, sorting, and table display of rows with pagination
 @maintenance_bp.route('/maintenance/search', methods=['GET'])
 @with_db
 def search_maintenance_records(db):
     search_term = request.args.get('query', '')
+    sort_by = request.args.get('sortBy', 'maintenance_type')  # Default sort by maintenance_type
+    sort_order = request.args.get('sortOrder', 'asc')  # Default order ascending
 
-    # List of attributes to search
-    search_fields = [MaintenanceRecord.maintenance_id, MaintenanceRecord.maintenance_type, MaintenanceRecord.description, MaintenanceRecord.notes]
+    # List of attributes to search for string fields
+    search_fields = [MaintenanceRecord.maintenance_type, MaintenanceRecord.description, MaintenanceRecord.notes]
 
     query = db.query(MaintenanceRecord)
 
     # Search for the term in all specified fields
     if search_term:
         search_filters = []
-        for field in search_fields:
-            if isinstance(field.type, String):
-                search_filters.append(field.ilike(f"%{search_term}%"))
 
-        # Apply all search filters with OR logic
+        # Check if search_term is numeric to filter by maintenance_id
+        if search_term.isdigit():
+            search_filters.append(MaintenanceRecord.maintenance_id == int(search_term))
+
+        # Apply ILIKE to string fields
+        for field in search_fields:
+            search_filters.append(field.ilike(f"%{search_term}%"))
+        
         query = query.filter(or_(*search_filters))
+
+    # Apply sorting
+    if sort_order == 'asc':
+        query = query.order_by(asc(getattr(MaintenanceRecord, sort_by)))
+    else:
+        query = query.order_by(desc(getattr(MaintenanceRecord, sort_by)))
 
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)

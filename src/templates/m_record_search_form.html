@@ -80,6 +80,8 @@
     <script>
         let currentPage = 1;
         let perPage = 10;
+        let sortBy = 'maintenance_id';  // Default sort by ID
+        let sortOrder = 'asc';  // Default ascending
 
         // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
@@ -137,9 +139,13 @@
             }
         }
 
-        // Function to fetch records based on user-defined page and search query
+        // Function to fetch records based on user-defined filters, sorting, and pagination
         function fetchRecords(page) {
-            fetchAndDisplayRecords(`/maintenance/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
+            const query = sanitizeInput(document.getElementById('searchBar').value);
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const url = `/maintenance/search?query=${query}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
+            fetchAndDisplayRecords(url);
         }
 
         // Event listener to initialize form actions
@@ -153,6 +159,14 @@
             // Dropdown to select number of rows per page
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
+                fetchRecords(currentPage);
+            });
+
+            // Sort and order selection
+            document.getElementById('sortBy').addEventListener('change', function() {
+                fetchRecords(currentPage);
+            });
+            document.getElementById('sortOrder').addEventListener('change', function() {
                 fetchRecords(currentPage);
             });
 
@@ -206,6 +220,21 @@
         <input type="text" id="searchBar" name="query" placeholder="Search for maintenance records..." required>
         <button type="submit">Search</button>
     </form>
+
+    <!-- Sorting options -->
+    <label for="sortBy">Sort by:</label>
+    <select id="sortBy">
+        <option value="maintenance_id">ID</option>
+        <option value="vehicle_id">Vehicle ID</option>
+        <option value="maintenance_type">Type</option>
+        <option value="cost">Cost</option>
+    </select>
+
+    <label for="sortOrder">Sort Order:</label>
+    <select id="sortOrder">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+    </select>
 
     <!-- Dropdown to select rows per page -->
     <label for="rowsPerPage">Rows per page:</label>
