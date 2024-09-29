@@ -9,42 +9,42 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-family: Arial, sans-serif; /* Ensures font matches the rest of the site */
+            font-family: Arial, sans-serif;
         }
 
         table th, table td {
             border: 1px solid #ddd;
-            padding: 12px; /* Increase padding for better readability */
+            padding: 12px;
             text-align: left;
-            color: #333; /* Darker text for readability */
+            color: #333;
         }
 
         table th {
-            background-color: #007BFF; /* Matches the button/link color */
-            color: white; /* White text on the header */
+            background-color: #007BFF;
+            color: white;
             font-weight: bold;
         }
 
         table tr:nth-child(even) {
-            background-color: #f2f2f2; /* Alternating row background for clarity */
+            background-color: #f2f2f2;
         }
 
         table tr:hover {
-            background-color: #e9ecef; /* Hover effect to make rows more interactive */
+            background-color: #e9ecef;
         }
 
         .pagination-buttons button {
             padding: 10px 20px;
-            background-color: #007BFF; /* Matches the site's primary color */
+            background-color: #007BFF;
             color: white;
             border: none;
-            border-radius: 4px; /* Softens button edges */
+            border-radius: 4px;
             cursor: pointer;
             margin-right: 5px;
         }
 
         .pagination-buttons button:hover {
-            background-color: #0056b3; /* Darken hover state */
+            background-color: #0056b3;
         }
 
         .pagination-buttons button:disabled {
@@ -62,6 +62,8 @@
     <script>
         let currentPage = 1;
         let perPage = 10;
+        let sortBy = 'make'; // Default sort by vehicle make
+        let sortOrder = 'asc'; // Default sort order ascending
     
         // Sanitize input before use to prevent potential XSS attacks
         function sanitizeInput(input) {
@@ -93,7 +95,7 @@
                     <td>${vehicle.mileage}</td>
                     <td>${vehicle.fuel_type}</td>
                     <td><button class="delete-btn" data-id="${vehicle.vehicle_id}" onclick="event.stopPropagation(); confirmDelete(${vehicle.vehicle_id})">Delete</button></td>
-                `;  // Added delete button for each vehicle
+                `;
                 vehicleTableBody.appendChild(row);
             });
     
@@ -119,9 +121,10 @@
             }
         }
     
-        // Function to fetch vehicles with user-defined per page value
+        // Function to fetch vehicles with user-defined per page value, including sortBy and sortOrder
         function fetchVehicles(page) {
-            fetchAndDisplayVehicles(`/vehicles/search?query=${sanitizeInput(document.getElementById('searchBar').value)}&page=${page}&per_page=${perPage}`);
+            const searchTerm = sanitizeInput(document.getElementById('searchBar').value);
+            fetchAndDisplayVehicles(`/vehicles/search?query=${searchTerm}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`);
         }
     
         // Handle delete operation with confirmation
@@ -132,8 +135,7 @@
                 });
                 if (response.ok) {
                     alert('Vehicle deleted successfully!');
-                    // Refresh the table after deletion
-                    fetchVehicles(currentPage);
+                    fetchVehicles(currentPage); // Refresh the table after deletion
                 } else {
                     alert('Error deleting vehicle.');
                 }
@@ -145,10 +147,11 @@
         // Function to confirm deletion
         function confirmDelete(vehicleId) {
             if (confirm(`Are you sure you want to delete vehicle with ID ${vehicleId}? This action cannot be undone.`)) {
-                handleDelete(vehicleId);  // Proceed with deletion if confirmed
+                handleDelete(vehicleId); // Proceed with deletion if confirmed
             }
         }
     
+        // Event listener to initialize form actions
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('searchVehicleForm').addEventListener('submit', function(event) {
                 event.preventDefault();
@@ -157,6 +160,16 @@
     
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
+                fetchVehicles(currentPage);
+            });
+
+            document.getElementById('sortBy').addEventListener('change', function(event) {
+                sortBy = event.target.value;
+                fetchVehicles(currentPage);
+            });
+    
+            document.getElementById('sortOrder').addEventListener('change', function(event) {
+                sortOrder = event.target.value;
                 fetchVehicles(currentPage);
             });
     
@@ -185,6 +198,22 @@
         <input type="text" id="searchBar" name="query" placeholder="Search for vehicles..." required>
         <button type="submit">Search</button>
     </form>
+
+    <!-- Dropdown for sorting -->
+    <label for="sortBy">Sort by:</label>
+    <select id="sortBy">
+        <option value="vehicle_id">ID</option>
+        <option value="make">Make</option>
+        <option value="model">Model</option>
+        <option value="year">Year</option>
+        <option value="mileage">Mileage</option>
+    </select>
+
+    <label for="sortOrder">Sort order:</label>
+    <select id="sortOrder">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+    </select>
 
     <!-- Dropdown to select the number of rows per page -->
     <label for="rowsPerPage">Rows per page:</label>

@@ -1,7 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
-from sqlalchemy import String, or_
+from sqlalchemy import String, or_, asc, desc
 from db.connection import SessionLocal
 from models.vehicle_model import Vehicle
 from services.vehicle_services import (
@@ -30,7 +30,7 @@ def with_db(f):
             return f(db, *args, **kwargs)
     return decorated_function
 
-# helper function to handle "Vehicle not found" case
+# Helper function to handle "Vehicle not found" case
 def vehicle_not_found_response(vehicle):
     if not vehicle:
         return jsonify({'error': 'Vehicle not found'}), 404
@@ -63,38 +63,41 @@ def create_vehicle_endpoint(db):
 @with_db
 def get_vehicle_by_id_endpoint(db, vehicle_id):
     vehicle = get_vehicle(db, vehicle_id=vehicle_id)
-    not_found = vehicle_not_found_response(vehicle)
-    if not_found:
-        return not_found
-    return jsonify(vehicle.to_dict())
+    return vehicle_not_found_response(vehicle) or jsonify(vehicle.to_dict())
 
-# more accessible search function and table display of rows with pagination
+# more accessible search, filtering, sorting, and table display of rows with pagination
 @vehicle_bp.route('/vehicles/search', methods=['GET'])
 @with_db
 def search_vehicles(db):
     search_term = request.args.get('query', '')
+    sort_by = request.args.get('sortBy', 'make')  # Default sort by vehicle make
+    sort_order = request.args.get('sortOrder', 'asc')  # Default sort order ascending
 
     # List of attributes to search
-    search_fields = [Vehicle.vehicle_id, Vehicle.make, Vehicle.model, Vehicle.year, Vehicle.registration_number, Vehicle.status, Vehicle.fuel_type]
+    search_fields = [Vehicle.make, Vehicle.model, Vehicle.registration_number, Vehicle.status, Vehicle.fuel_type]
 
     query = db.query(Vehicle)
 
     # Search for the term in all specified fields
     if search_term:
         search_filters = []
-        for field in search_fields:
-            if isinstance(field.type, String):
-                search_filters.append(field.ilike(f"%{search_term}%"))
-            else:
-                try:
-                    # If the search term can be cast to a number, allow searching non-string fields
-                    search_value = int(search_term)
-                    search_filters.append(field == search_value)
-                except ValueError:
-                    continue
+        
+        # Check if search_term is numeric to filter by vehicle_id or year
+        if search_term.isdigit():
+            search_filters.append(Vehicle.vehicle_id == int(search_term))
+            search_filters.append(Vehicle.year == int(search_term))
 
-        # Apply all search filters with OR logic
+        # Apply ILIKE to string fields
+        for field in search_fields:
+            search_filters.append(field.ilike(f"%{search_term}%"))
+        
         query = query.filter(or_(*search_filters))
+
+    # Apply sorting
+    if sort_order == 'asc':
+        query = query.order_by(asc(getattr(Vehicle, sort_by)))
+    else:
+        query = query.order_by(desc(getattr(Vehicle, sort_by)))
 
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
@@ -125,27 +128,13 @@ def get_vehicle_mileage(vehicle_id):
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['PUT'])
 @with_db
 def update_vehicle_endpoint(db, vehicle_id):
-    # Get the data from the request
     data = request.get_json()
-
-    # Call the update_vehicle function from the service
     updated_vehicle = update_vehicle(db, vehicle_id=vehicle_id, data=data)
-
-    # If the vehicle doesn't exist, handle the "not found" case
-    not_found = vehicle_not_found_response(updated_vehicle)
-    if not_found:
-        return not_found
-
-    # Return the updated vehicle as a JSON response
-    return jsonify(updated_vehicle.to_dict())
-
+    return vehicle_not_found_response(updated_vehicle) or jsonify(updated_vehicle.to_dict())
 
 # deletes a vehicle
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['DELETE'])
 @with_db
 def delete_vehicle_endpoint(db, vehicle_id):
     deleted_vehicle = delete_vehicle(db, vehicle_id=vehicle_id)
-    not_found = vehicle_not_found_response(deleted_vehicle)
-    if not_found:
-        return not_found
-    return jsonify({'message': 'Vehicle deleted successfully'})
+    return vehicle_not_found_response(deleted_vehicle) or jsonify({'message': 'Vehicle deleted successfully'})
