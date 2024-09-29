@@ -19,7 +19,7 @@ def update_route(db: Session, route_id: int, data: dict):
     if not route:
         return None  # Return None if route is not found
     for key, value in data.items():
-        setattr(route, key, value)
+        setattr(route, key, value) 
     db.commit()
     db.refresh(route)
     return route

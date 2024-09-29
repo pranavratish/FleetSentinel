@@ -93,7 +93,7 @@ def search_maintenance_records(db):
     search_term = request.args.get('query', '')
 
     # List of attributes to search
-    search_fields = [MaintenanceRecord.maintenance_type, MaintenanceRecord.description, MaintenanceRecord.notes]
+    search_fields = [MaintenanceRecord.maintenance_id, MaintenanceRecord.maintenance_type, MaintenanceRecord.description, MaintenanceRecord.notes]
 
     query = db.query(MaintenanceRecord)
 

@@ -39,7 +39,7 @@ def update_maintenance_record(db: Session, record_id: int, data: dict):
         return None
 
     # Update record attributes
-    for key, value in data.items():
+    for key, value in data.items(): 
         setattr(record, key, value)
 
     db.commit()

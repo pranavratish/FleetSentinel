@@ -71,7 +71,6 @@
             font-size: 16px;
             font-weight: bold;
         }
-
     </style>
     <script>
         let currentPage = 1;
@@ -137,10 +136,14 @@
             }
         }
 
-        // Function to fetch drivers based on user-defined page and search query
+        // Function to fetch drivers based on user-defined page, search query, filters, and sorting
         function fetchDrivers(page) {
             const query = sanitizeInput(document.getElementById('searchBar').value);
-            fetchAndDisplayDrivers(`/drivers/search?query=${query}&page=${page}&per_page=${perPage}`);
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const filterByLicense = sanitizeInput(document.getElementById('filterByLicense').value);
+
+            fetchAndDisplayDrivers(`/drivers/search?query=${query}&sortBy=${sortBy}&sortOrder=${sortOrder}&filterByLicense=${filterByLicense}&page=${page}&per_page=${perPage}`);
         }
 
         // Event listener to initialize form actions
@@ -207,6 +210,23 @@
         <input type="text" id="searchBar" name="query" placeholder="Search for drivers..." required>
         <button type="submit">Search</button>
     </form>
+
+    <!-- Filtering and sorting options -->
+    <label for="filterByLicense">Filter by License Number:</label>
+    <input type="text" id="filterByLicense" placeholder="Enter License Number">
+
+    <label for="sortBy">Sort By:</label>
+    <select id="sortBy">
+        <option value="name">Name</option>
+        <option value="license_number">License Number</option>
+        <option value="email">Email</option>
+    </select>
+
+    <label for="sortOrder">Sort Order:</label>
+    <select id="sortOrder">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+    </select>
 
     <!-- Dropdown to select rows per page -->
     <label for="rowsPerPage">Rows per page:</label>

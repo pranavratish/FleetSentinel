@@ -20,7 +20,7 @@ def get_vehicle(db: Session, vehicle_id: int):
 
 # Function for updating vehicle entry
 def update_vehicle(db: Session, vehicle_id: int, data: dict):
-    vehicle = get_vehicle(db, vehicle_id)
+    vehicle = get_vehicle(db, vehicle_id) 
     if vehicle:
         for key, value in data.items():
             setattr(vehicle, key, value)

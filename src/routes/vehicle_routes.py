@@ -75,7 +75,7 @@ def search_vehicles(db):
     search_term = request.args.get('query', '')
 
     # List of attributes to search
-    search_fields = [Vehicle.make, Vehicle.model, Vehicle.year, Vehicle.registration_number, Vehicle.status, Vehicle.fuel_type]
+    search_fields = [Vehicle.vehicle_id, Vehicle.make, Vehicle.model, Vehicle.year, Vehicle.registration_number, Vehicle.status, Vehicle.fuel_type]
 
     query = db.query(Vehicle)
 

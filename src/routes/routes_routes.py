@@ -91,7 +91,7 @@ def search_routes(db):
     search_term = request.args.get('query', '')
 
     # List of attributes to search
-    search_fields = [Route.origin, Route.destination]
+    search_fields = [Route.route_id, Route.origin, Route.destination]
 
     query = db.query(Route)
 

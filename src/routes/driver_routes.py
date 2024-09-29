@@ -1,7 +1,7 @@
 from contextlib import closing
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
-from sqlalchemy import String, or_
+from sqlalchemy import String, or_, asc, desc
 from db.connection import SessionLocal
 from models.driver_model import Driver
 from services.driver_services import (
@@ -65,7 +65,6 @@ def create_driver_endpoint(db):
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
-
 # returns a driver by ID
 @driver_bp.route('/drivers/<int:driver_id>', methods=['GET'])
 @with_db
@@ -73,13 +72,15 @@ def get_driver_by_id_endpoint(db, driver_id):
     driver = get_driver(db, driver_id=driver_id)
     return not_found(driver) or jsonify(driver.to_dict())  # Simplify the logic
 
-# more accessible search function and table display of rows with pagination
+# more accessible search, filtering, sorting, and table display of rows with pagination
 @driver_bp.route('/drivers/search', methods=['GET'])
 @with_db
 def search_drivers(db):
     search_term = request.args.get('query', '')
+    sort_by = request.args.get('sortBy', 'name')  # Default sort by name
+    sort_order = request.args.get('sortOrder', 'asc')  # Default order ascending
 
-    # List of attributes to search
+    # List of attributes to search for string fields
     search_fields = [Driver.name, Driver.license_number, Driver.email]
 
     query = db.query(Driver)
@@ -87,9 +88,22 @@ def search_drivers(db):
     # Search for the term in all specified fields
     if search_term:
         search_filters = []
+
+        # Check if search_term is numeric to filter by driver_id
+        if search_term.isdigit():
+            search_filters.append(Driver.driver_id == int(search_term))
+
+        # Apply ILIKE to string fields
         for field in search_fields:
             search_filters.append(field.ilike(f"%{search_term}%"))
+        
         query = query.filter(or_(*search_filters))
+
+    # Apply sorting
+    if sort_order == 'asc':
+        query = query.order_by(asc(getattr(Driver, sort_by)))
+    else:
+        query = query.order_by(desc(getattr(Driver, sort_by)))
 
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)

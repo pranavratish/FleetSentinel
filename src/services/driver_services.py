@@ -17,7 +17,7 @@ def create_driver(db: Session, data: dict):
     db.commit()
     db.refresh(new_driver)
     return new_driver
-
+ 
 # Function to retrieve a driver by ID
 def get_driver(db: Session, driver_id: int):
     return db.query(Driver).filter(Driver.driver_id == driver_id).first()
