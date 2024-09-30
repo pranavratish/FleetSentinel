@@ -106,31 +106,31 @@
     <script>
         let currentPage = 1;
         let perPage = 10;
-
+    
         // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
             element.innerText = input;  // Encode the input as text
             return element.innerHTML;   // Return sanitized string
         }
-
+    
         // Function to display the driver data in a table
         function displayDataInTable(drivers) {
             const driverTableBody = document.getElementById('driverTableBody');
             driverTableBody.innerHTML = '';  // Clear existing content
-
+    
             drivers.forEach(driver => {
                 const row = document.createElement('tr');
-
+    
                 // Redirect to the correct update form with the driver_id in the URL
                 row.onclick = () => {
                     window.location.href = `/drivers/${driver.driver_id}/update`;
                 };
-
+    
                 // Handle potential null or empty values
                 const assignedVehicle = driver.assigned_vehicle_id ? sanitizeInput(driver.assigned_vehicle_id) : 'N/A';
                 const licenseExpiryDate = driver.license_expiry_date || 'N/A';  // Handle empty dates
-
+    
                 row.innerHTML = `
                     <td>${sanitizeInput(driver.driver_id)}</td>
                     <td>${sanitizeInput(driver.name)}</td>
@@ -143,14 +143,25 @@
                 `;
                 driverTableBody.appendChild(row);
             });
-
+    
             document.getElementById('driverTable').style.display = drivers.length ? 'table' : 'none';
         }
-
+    
         // Function to fetch and display drivers from the server
         async function fetchAndDisplayDrivers(url) {
+            const token = localStorage.getItem('accessToken');
+    
+            if (!token) {
+                alert('You must be logged in to view drivers.');
+                return;
+            }
+    
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (response.ok) {
                     const result = await response.json();
                     displayDataInTable(result.drivers || result);
@@ -166,57 +177,53 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-
+    
         // Function to fetch drivers based on user-defined page, search query, filters, and sorting
         function fetchDrivers(page) {
             const query = sanitizeInput(document.getElementById('searchBar').value);
             const sortBy = document.getElementById('sortBy').value;
             const sortOrder = document.getElementById('sortOrder').value;
             const filterByLicense = sanitizeInput(document.getElementById('filterByLicense').value);
-
+    
             fetchAndDisplayDrivers(`/drivers/search?query=${query}&sortBy=${sortBy}&sortOrder=${sortOrder}&filterByLicense=${filterByLicense}&page=${page}&per_page=${perPage}`);
         }
-
+    
         // Event listener to initialize form actions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Search form submission event
+        document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('searchDriverForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchDrivers(currentPage);
             });
-
-            // Dropdown to select number of rows per page
+    
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchDrivers(currentPage);
             });
-
-            // Pagination controls
+    
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     fetchDrivers(currentPage);
                 }
             });
-
+    
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchDrivers(currentPage);
             });
-
-            // Update authentication status on page load
-            updateAuthStatus();
+    
+            await updateAuthStatus();  // Update authentication status on page load
         });
-
+    
         // Function to handle the deletion of a driver with confirmation
         async function handleDelete(driverId) {
             const token = localStorage.getItem('accessToken');
-
+    
             if (!token) {
                 alert('You must be logged in to delete a driver.');
                 return;
             }
-
+    
             try {
                 const response = await fetch(`/drivers/${driverId}`, {
                     method: 'DELETE',
@@ -234,19 +241,19 @@
                 alert('Error connecting to the server.');
             }
         }
-
+    
         // Function to confirm deletion before proceeding
         function confirmDelete(driverId) {
             if (confirm(`Are you sure you want to delete driver with ID ${driverId}? This action cannot be undone.`)) {
                 handleDelete(driverId);  // Proceed with deletion if confirmed
             }
         }
-
+    
         // Check if user is logged in and update the UI
-        function updateAuthStatus() {
+        async function updateAuthStatus() {
             const token = localStorage.getItem('accessToken');
             const authStatusElement = document.getElementById('auth-status');
-
+    
             if (token) {
                 authStatusElement.innerHTML = `
                     <span>Welcome, User!</span>
@@ -258,14 +265,14 @@
                 `;
             }
         }
-
+    
         // Handle user logout
         function logout() {
             localStorage.removeItem('accessToken'); // Remove token from local storage
             alert('Logged out successfully!');
             location.reload(); // Refresh the page
         }
-    </script>    
+    </script>        
 </head>
 <body>
 

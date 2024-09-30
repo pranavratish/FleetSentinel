@@ -59,19 +59,57 @@
             background-color: #ddd;
         }
 
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         // Utility function to sanitize input for client-side safety
         function sanitizeInput(input) {
             const element = document.createElement('div');
-            element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
+            element.innerText = input.trim();  
             return element.innerHTML;
         }
-
-        // Function to fetch vehicle mileage based on vehicle ID
+    
+        // Function to fetch vehicle mileage based on vehicle ID with token validation
         async function fetchVehicleMileage(vehicleId) {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                alert('You must be logged in to fetch vehicle mileage.');
+                return;
+            }
+    
             try {
-                const response = await fetch(`/vehicles/${vehicleId}/mileage`);
+                const response = await fetch(`/vehicles/${vehicleId}/mileage`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (response.ok) {
                     const data = await response.json();
                     if (data.mileage) {
@@ -86,7 +124,7 @@
                 alert('Error connecting to the server.');
             }
         }
-
+    
         // Event listener to fetch vehicle mileage when vehicle ID is entered
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('vehicle_id').addEventListener('blur', function() {
@@ -95,12 +133,21 @@
                     fetchVehicleMileage(vehicleId);
                 }
             });
+    
+            document.getElementById('createTripLogForm').addEventListener('submit', handleSubmit);
+            updateAuthStatus(); // Update the login status banner on page load
         });
-
+    
         // Function to handle form submission and sanitize the data
-        function handleSubmit(event) {
+        async function handleSubmit(event) {
             event.preventDefault();  // Prevents default form submission
-
+    
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                alert('You must be logged in to create a trip log.');
+                return;
+            }
+    
             // Collecting and sanitizing form data
             const sanitizedData = {
                 vehicle_id: sanitizeInput(document.getElementById('vehicle_id').value),
@@ -113,40 +160,66 @@
                 status: sanitizeInput(document.getElementById('status').value),
                 notes: sanitizeInput(document.getElementById('notes').value)
             };
-
+    
             // POST request to server with sanitized data
-            fetch('/trip_logs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(sanitizedData),
-            })
-            // Handling the server's response
-            .then(response => {
+            try {
+                const response = await fetch('/trip_logs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(sanitizedData),
+                });
+    
                 if (response.ok) {
-                    return response.json();
+                    const data = await response.json();
+                    alert(`Trip log created successfully with ID: ${data.trip_id}`);
                 } else {
                     throw new Error('Error creating trip log');
                 }
-            })
-            .then(data => {
-                alert(`Trip log created successfully with ID: ${data.trip_id}`);
-            })
-            .catch(error => {
+            } catch (error) {
                 alert('Error creating trip log: ' + error.message);
-            });
+            }
+        }
+    
+        // Check if user is logged in and update the UI
+        function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
         }
     </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <!-- Form title -->
     <h1>Create a New Trip Log</h1>
 
     <button onclick="window.location.href='/'">Back to Home</button>
 
     <!-- Trip log creation form -->
-    <form id="createTripLogForm" onsubmit="handleSubmit(event)">
+    <form id="createTripLogForm">
         <!-- Vehicle ID input field -->
         <label for="vehicle_id">Vehicle ID:</label>
         <input type="number" id="vehicle_id" name="vehicle_id" required>

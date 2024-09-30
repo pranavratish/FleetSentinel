@@ -1,6 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import String, or_, asc, desc
 from db.connection import SessionLocal
 from models.vehicle_model import Vehicle
@@ -45,14 +46,20 @@ def new_vehicle_form():
 def vehicles_table_form():
     return render_template('vehicle_search_form.html')
 
-# renders the update vehicle HTML form
+# renders the update vehicle HTML form and passes the vehicle data
 @vehicle_bp.route('/vehicles/<int:vehicle_id>/update', methods=['GET'])
-def update_vehicle_form(vehicle_id):
-    return render_template('vehicle_update_form.html')
+@with_db
+@jwt_required()
+def update_vehicle_form(db, vehicle_id):
+    vehicle = get_vehicle(db, vehicle_id=vehicle_id)
+    if vehicle_not_found_response(vehicle):
+        return vehicle_not_found_response(vehicle)  # Return a 404 if the vehicle isn't found
+    return render_template('vehicle_update_form.html', vehicle=vehicle)  # Pass the vehicle data to the template
 
 # creates a new vehicle
 @vehicle_bp.route('/vehicles', methods=['POST'])
 @with_db
+@jwt_required()
 def create_vehicle_endpoint(db):
     data = request.get_json()
     new_vehicle = create_vehicle(db, data)
@@ -61,6 +68,7 @@ def create_vehicle_endpoint(db):
 # returns a vehicle by ID
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['GET'])
 @with_db
+@jwt_required()
 def get_vehicle_by_id_endpoint(db, vehicle_id):
     vehicle = get_vehicle(db, vehicle_id=vehicle_id)
     return vehicle_not_found_response(vehicle) or jsonify(vehicle.to_dict())
@@ -116,6 +124,7 @@ def search_vehicles(db):
 
 # Endpoint to get the mileage of a vehicle by ID
 @vehicle_bp.route('/vehicles/<int:vehicle_id>/mileage', methods=['GET'])
+@jwt_required()
 def get_vehicle_mileage(vehicle_id):
     db = next(get_db())
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
@@ -127,6 +136,7 @@ def get_vehicle_mileage(vehicle_id):
 # updates a vehicle's details (supports partial updates)
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['PUT'])
 @with_db
+@jwt_required()
 def update_vehicle_endpoint(db, vehicle_id):
     data = request.get_json()
     updated_vehicle = update_vehicle(db, vehicle_id=vehicle_id, data=data)
@@ -135,6 +145,7 @@ def update_vehicle_endpoint(db, vehicle_id):
 # deletes a vehicle
 @vehicle_bp.route('/vehicles/<int:vehicle_id>', methods=['DELETE'])
 @with_db
+@jwt_required()
 def delete_vehicle_endpoint(db, vehicle_id):
     deleted_vehicle = delete_vehicle(db, vehicle_id=vehicle_id)
     return vehicle_not_found_response(deleted_vehicle) or jsonify({'message': 'Vehicle deleted successfully'})

@@ -1,6 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import or_, String, asc, desc
 from db.connection import SessionLocal
 from models.routes_model import Route
@@ -48,6 +49,7 @@ def search_routes_form():
 # renders the HTML form for updating an existing route and preloads the route data
 @route_bp.route('/routes/<int:route_id>/update', methods=['GET'])
 @with_db
+@jwt_required()
 def update_route_form(db, route_id):
     route = get_route(db, route_id=route_id)
     if not route:
@@ -57,6 +59,7 @@ def update_route_form(db, route_id):
 # creates a new route
 @route_bp.route('/routes', methods=['POST'])
 @with_db
+@jwt_required()
 def create_route_endpoint(db):
     data = request.get_json()
     new_route = create_route(db, data)
@@ -65,6 +68,7 @@ def create_route_endpoint(db):
 # returns a route by ID
 @route_bp.route('/routes/<int:route_id>', methods=['GET'])
 @with_db
+@jwt_required()
 def get_route_by_id_endpoint(db, route_id):
     route = get_route(db, route_id=route_id)
     return not_found(route, "Route") or jsonify(route.to_dict())
@@ -72,6 +76,7 @@ def get_route_by_id_endpoint(db, route_id):
 # updates a route's details (supports partial updates)
 @route_bp.route('/routes/<int:route_id>', methods=['PUT'])
 @with_db
+@jwt_required()
 def update_route_endpoint(db, route_id):
     data = request.get_json()
     updated_route = update_route(db, route_id=route_id, data=data)
@@ -80,6 +85,7 @@ def update_route_endpoint(db, route_id):
 # deletes a route
 @route_bp.route('/routes/<int:route_id>', methods=['DELETE'])
 @with_db
+@jwt_required()
 def delete_route_endpoint(db, route_id):
     deleted_route = delete_route(db, route_id=route_id)
     return not_found(deleted_route, "Route") or jsonify({'message': 'Route deleted successfully'})

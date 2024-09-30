@@ -93,27 +93,27 @@
         let perPage = 10;
         let sortBy = 'maintenance_id';  // Default sort by ID
         let sortOrder = 'asc';  // Default ascending
-
+    
         // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
             element.innerText = input;  // Encode the input as text
             return element.innerHTML;   // Return sanitized string
         }
-
+    
         // Function to display the maintenance record data in a table
         function displayDataInTable(records) {
             const recordTableBody = document.getElementById('recordTableBody');
             recordTableBody.innerHTML = '';  // Clear existing content
-
+    
             records.forEach(record => {
                 const row = document.createElement('tr');
-
+    
                 // Redirect to the correct update form with the maintenance_id in the URL
                 row.onclick = () => {
                     window.location.href = `/maintenance/${record.maintenance_id}/update`;
                 };
-
+    
                 row.innerHTML = `
                     <td>${sanitizeInput(record.maintenance_id)}</td>
                     <td>${sanitizeInput(record.vehicle_id)}</td>
@@ -126,14 +126,21 @@
                 `;
                 recordTableBody.appendChild(row);
             });
-
+    
             document.getElementById('recordTable').style.display = records.length ? 'table' : 'none';
         }
-
+    
         // Function to fetch and display maintenance records from the server
         async function fetchAndDisplayRecords(url) {
             try {
-                const response = await fetch(url);
+                const token = localStorage.getItem('accessToken');  // Get token from localStorage
+    
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`  // Add Authorization header
+                    }
+                });
+                
                 if (response.ok) {
                     const result = await response.json();
                     displayDataInTable(result.records || result);
@@ -149,7 +156,7 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-
+    
         // Function to fetch records based on user-defined filters, sorting, and pagination
         function fetchRecords(page) {
             const query = sanitizeInput(document.getElementById('searchBar').value);
@@ -158,28 +165,24 @@
             const url = `/maintenance/search?query=${query}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
             fetchAndDisplayRecords(url);
         }
-
+    
         // Event listener to initialize form actions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Show login status
-            const token = localStorage.getItem('accessToken');
-            const loginStatus = document.createElement('div');
-            loginStatus.className = 'login-status';
-            loginStatus.innerText = token ? 'Logged in' : 'Not logged in';
-            document.body.appendChild(loginStatus);
-
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Update authentication status on page load
+            await updateAuthStatus();  // Ensure token validation and UI update on load
+    
             // Search form submission event
             document.getElementById('searchRecordForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchRecords(currentPage);
             });
-
+    
             // Dropdown to select number of rows per page
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchRecords(currentPage);
             });
-
+    
             // Sort and order selection
             document.getElementById('sortBy').addEventListener('change', function() {
                 fetchRecords(currentPage);
@@ -187,7 +190,7 @@
             document.getElementById('sortOrder').addEventListener('change', function() {
                 fetchRecords(currentPage);
             });
-
+    
             // Pagination controls
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
@@ -195,22 +198,22 @@
                     fetchRecords(currentPage);
                 }
             });
-
+    
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchRecords(currentPage);
             });
         });
-
+    
         // Function to handle the deletion of a record with confirmation
         async function handleDelete(maintenanceId) {
             const token = localStorage.getItem('accessToken');  // Get token from localStorage
-
+    
             if (!token) {
                 alert('You must be logged in to delete a maintenance record.');
                 return;
             }
-
+    
             try {
                 const response = await fetch(`/maintenance/${maintenanceId}`, {
                     method: 'DELETE',
@@ -228,14 +231,38 @@
                 alert('Error connecting to the server.');
             }
         }
-
+    
         // Function to confirm deletion before proceeding
         function confirmDelete(maintenanceId) {
             if (confirm(`Are you sure you want to delete maintenance record with ID ${maintenanceId}? This action cannot be undone.`)) {
                 handleDelete(maintenanceId);  // Proceed with deletion if confirmed
             }
         }
-    </script>    
+    
+        // Check if user is logged in and update the UI
+        async function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    </script>        
 </head>
 <body>
 

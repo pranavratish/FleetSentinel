@@ -59,6 +59,37 @@
             background-color: #ddd;
         }
 
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
+
     </style>
     <script>
         // Utility function to sanitize input for client-side safety
@@ -67,7 +98,7 @@
             element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
             return element.innerHTML;
         }
-
+    
         // Function to convert estimated duration into minutes
         function convertDurationToMinutes(hours, minutes) {
             let totalMinutes = 0;
@@ -79,48 +110,85 @@
             }
             return totalMinutes;
         }
-
+    
         // Function to handle form submission and sanitize the data
-        function handleSubmit(event) {
+        async function handleSubmit(event) {
             event.preventDefault();  // Prevents default form submission
-
+    
             // Collecting and sanitizing form data
             const hours = sanitizeInput(document.getElementById('estimated_duration_hours').value);
             const minutes = sanitizeInput(document.getElementById('estimated_duration_minutes').value);
-
+    
             const sanitizedData = {
                 origin: sanitizeInput(document.getElementById('origin').value),
                 destination: sanitizeInput(document.getElementById('destination').value),
                 distance: sanitizeInput(document.getElementById('distance').value),
                 estimated_duration: convertDurationToMinutes(hours, minutes),  // Convert to total minutes
             };
-
-            // POST request to server with sanitized data
-            fetch('/routes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(sanitizedData),
-            })
-            // Handling the server's response
-            .then(response => {
+    
+            const token = localStorage.getItem('accessToken');  // Retrieve JWT from local storage
+    
+            if (!token) {
+                alert('You must be logged in to create a route.');
+                return;
+            }
+    
+            try {
+                const response = await fetch('/routes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
+                    },
+                    body: JSON.stringify(sanitizedData),
+                });
+    
                 if (response.ok) {
-                    return response.json();
+                    const data = await response.json();
+                    alert(`Route created successfully with ID: ${data.route_id}`);
                 } else {
                     throw new Error('Error creating route');
                 }
-            })
-            .then(data => {
-                alert(`Route created successfully with ID: ${data.route_id}`);
-            })
-            .catch(error => {
+            } catch (error) {
                 alert('Error creating route: ' + error.message);
-            });
+            }
         }
-    </script>    
+    
+        // Check if user is logged in and update the UI
+        async function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('createRouteForm').addEventListener('submit', handleSubmit);
+            await updateAuthStatus();  // Update the login status banner on page load
+        });
+    </script>        
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <!-- Form title -->
     <h1>Create a New Route</h1>
 

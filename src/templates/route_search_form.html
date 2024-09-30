@@ -76,31 +76,61 @@
             font-weight: bold;
         }
 
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         let currentPage = 1;
         let perPage = 10;
-
+    
         // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
             element.innerText = input;  
             return element.innerHTML;   // Return sanitized string
         }
-
+    
         // Utility function to display route data in a table
         function displayDataInTable(routes) {
             const routeTableBody = document.getElementById('routeTableBody');
             routeTableBody.innerHTML = '';  // Clear existing content
-
+    
             routes.forEach(route => {
                 const row = document.createElement('tr');
-
+    
                 // Make row clickable to navigate to the update route page
                 row.onclick = () => {
                     window.location.href = `/routes/${route.route_id}/update`;
                 };
-
+    
                 row.innerHTML = `
                     <td>${sanitizeInput(route.route_id)}</td>
                     <td>${sanitizeInput(route.origin)}</td>
@@ -112,14 +142,26 @@
                 `;
                 routeTableBody.appendChild(row);
             });
-
+    
             document.getElementById('routeTable').style.display = routes.length ? 'table' : 'none';
         }
-
+    
         // Fetch and display route data from the server
         async function fetchAndDisplayRoutes(url) {
             try {
-                const response = await fetch(url);
+                const token = localStorage.getItem('accessToken');
+    
+                if (!token) {
+                    alert('You must be logged in to view routes.');
+                    return;
+                }
+    
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`  // Include JWT token in Authorization header
+                    }
+                });
+    
                 if (response.ok) {
                     const result = await response.json();
                     displayDataInTable(result.routes || result);
@@ -134,23 +176,34 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-
+    
         // Fetch routes based on user-defined page and search query, add filtering/sorting
         function fetchRoutes(page) {
             const searchQuery = sanitizeInput(document.getElementById('searchBar').value);
             const sortBy = sanitizeInput(document.getElementById('sortBy').value);
             const sortOrder = sanitizeInput(document.getElementById('sortOrder').value);
-
+    
             const url = `/routes/search?query=${searchQuery}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
             fetchAndDisplayRoutes(url);
         }
-
+    
         // Handle delete operation with confirmation
         async function handleDelete(routeId) {
+            const token = localStorage.getItem('accessToken');
+    
+            if (!token) {
+                alert('You must be logged in to delete routes.');
+                return;
+            }
+    
             try {
                 const response = await fetch(`/routes/${routeId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`  // Include JWT token in Authorization header
+                    }
                 });
+    
                 if (response.ok) {
                     alert('Route deleted successfully!');
                     fetchRoutes(currentPage);  // Refresh the table after deletion
@@ -161,44 +214,70 @@
                 alert('Error connecting to the server.');
             }
         }
-
+    
         // Confirm deletion before proceeding
         function confirmDelete(routeId) {
             if (confirm(`Are you sure you want to delete route with ID ${routeId}? This action cannot be undone.`)) {
                 handleDelete(routeId);  // Proceed with deletion if confirmed
             }
         }
-
+    
         // Initialize form actions when the DOM content is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Search form submission event
             document.getElementById('searchRouteForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchRoutes(currentPage);
             });
-
-            // Rows per page dropdown event
+    
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchRoutes(currentPage);
             });
-
-            // Pagination controls
+    
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     fetchRoutes(currentPage);
                 }
             });
-
+    
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchRoutes(currentPage);
             });
+    
+            updateAuthStatus(); // Update the login status banner on page load
         });
-    </script>
+    
+        // Check if user is logged in and update the UI
+        async function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
 
     <h1>Route List & Search</h1>
 

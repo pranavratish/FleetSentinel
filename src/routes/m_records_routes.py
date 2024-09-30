@@ -1,6 +1,7 @@
 import contextlib
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import or_, String, asc, desc
 from db.connection import SessionLocal
 from models.m_records_model import MaintenanceRecord
@@ -47,6 +48,7 @@ def search_maintenance_form():
 # renders the update maintenance record HTML form
 @maintenance_bp.route('/maintenance/<int:record_id>/update', methods=['GET'])
 @with_db
+@jwt_required()
 def update_maintenance_record_form(db, record_id):
     maintenance_record = get_maintenance_record(db, record_id=record_id)
     if not maintenance_record:
@@ -56,6 +58,7 @@ def update_maintenance_record_form(db, record_id):
 # creates a new maintenance record
 @maintenance_bp.route('/maintenance', methods=['POST'])
 @with_db
+@jwt_required()
 def create_maintenance_record_endpoint(db):
     data = request.get_json()
     try:
@@ -67,6 +70,7 @@ def create_maintenance_record_endpoint(db):
 # returns a maintenance record by ID
 @maintenance_bp.route('/maintenance/<int:record_id>', methods=['GET'])
 @with_db
+@jwt_required()
 def get_maintenance_record_by_id_endpoint(db, record_id):
     record = get_maintenance_record(db, record_id=record_id)
     return not_found(record, "Maintenance Record") or jsonify(record.to_dict())
@@ -74,6 +78,7 @@ def get_maintenance_record_by_id_endpoint(db, record_id):
 # updates a maintenance record's details (supports partial updates)
 @maintenance_bp.route('/maintenance/<int:record_id>', methods=['PUT'])
 @with_db
+@jwt_required()
 def update_maintenance_record_endpoint(db, record_id):
     data = request.get_json()
     updated_record = update_maintenance_record(db, record_id=record_id, data=data)
@@ -82,6 +87,7 @@ def update_maintenance_record_endpoint(db, record_id):
 # deletes a maintenance record
 @maintenance_bp.route('/maintenance/<int:record_id>', methods=['DELETE'])
 @with_db
+@jwt_required()
 def delete_maintenance_record_endpoint(db, record_id):
     deleted_record = delete_maintenance_record(db, record_id=record_id)
     return not_found(deleted_record, "Maintenance Record") or jsonify({'message': 'Maintenance record deleted successfully'})

@@ -50,6 +50,37 @@
         button:disabled {
             background-color: #ddd;
         }
+
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         // Utility function to sanitize input
@@ -58,11 +89,20 @@
             element.innerText = input.trim();  
             return element.innerHTML;
         }
-
+    
         // Fetch current vehicle mileage based on vehicle_id
         async function fetchVehicleMileage(vehicleId) {
             try {
-                const response = await fetch(`/vehicles/${vehicleId}/mileage`);
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    alert('You must be logged in to fetch vehicle mileage.');
+                    return;
+                }
+    
+                const response = await fetch(`/vehicles/${vehicleId}/mileage`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+    
                 if (response.ok) {
                     const data = await response.json();
                     document.getElementById('mileage_start').value = data.mileage;
@@ -73,37 +113,46 @@
                 console.error('Error:', error);
             }
         }
-
+    
         // Prepopulate the form and fetch current vehicle mileage
         function preloadForm() {
             const vehicleId = document.getElementById('vehicle_id').value;
             fetchVehicleMileage(vehicleId); // Fetch current mileage when the form loads
         }
-
+    
         // Handle form submission to update trip log
         async function handleUpdate(event) {
             event.preventDefault();
-
+    
             const tripId = document.getElementById('trip_id').value;
             const sanitizedData = {
                 vehicle_id: sanitizeInput(document.getElementById('vehicle_id').value),
                 driver_id: sanitizeInput(document.getElementById('driver_id').value),
                 route_id: sanitizeInput(document.getElementById('route_id').value),
                 start_time: sanitizeInput(document.getElementById('start_time').value),
-                end_time: sanitizeInput(document.getElementById('end_time').value || null),  // Nullable end_time
+                end_time: sanitizeInput(document.getElementById('end_time').value || null),
                 mileage_start: sanitizeInput(document.getElementById('mileage_start').value),
-                mileage_end: sanitizeInput(document.getElementById('mileage_end').value || null),  // Nullable mileage_end
+                mileage_end: sanitizeInput(document.getElementById('mileage_end').value || null),
                 status: sanitizeInput(document.getElementById('status').value),
                 notes: sanitizeInput(document.getElementById('notes').value),
             };
-
+    
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                alert('You must be logged in to update trip logs.');
+                return;
+            }
+    
             try {
                 const response = await fetch(`/trip_logs/${tripId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify(sanitizedData)
                 });
-
+    
                 if (response.ok) {
                     alert('Trip log updated successfully!');
                 } else {
@@ -113,14 +162,43 @@
                 alert('Error updating trip log: ' + error.message);
             }
         }
-
+    
         document.addEventListener('DOMContentLoaded', () => {
             preloadForm();  // Preload vehicle mileage on page load
             document.getElementById('updateTripLogForm').addEventListener('submit', handleUpdate);
+            updateAuthStatus(); // Update the login status banner on page load
         });
-    </script>
+    
+        // Check if user is logged in and update the UI
+        function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <h1>Update Trip Log</h1>
 
     <button onclick="window.location.href='/trip_logs/search/form'">Go Back</button>

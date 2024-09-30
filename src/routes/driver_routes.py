@@ -1,7 +1,7 @@
 from contextlib import closing
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 from sqlalchemy import String, or_, asc, desc
 from db.connection import SessionLocal
 from models.driver_model import Driver

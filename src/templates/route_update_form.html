@@ -50,22 +50,63 @@
         button:disabled {
             background-color: #ddd;
         }
+
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         let initialRouteData = {};  // Store the initial route data
-
+    
         // Utility function to sanitize input
         function sanitizeInput(input) {
             const element = document.createElement('div');
-            element.innerText = input.trim();  // Remove unnecessary spaces and escape HTML
+            element.innerText = input.trim();  
             return element.innerHTML;
         }
-
-        // Utility function to fetch data from an API endpoint
+    
+        // Utility function to fetch data from an API endpoint with token validation
         async function fetchData(url, method = 'GET', body = null) {
+            const token = localStorage.getItem('accessToken');
+    
+            if (!token) {
+                alert('You must be logged in to update routes.');
+                throw new Error('No token provided');
+            }
+    
             const options = {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`  // Include JWT token in Authorization header
+                },
             };
             if (body) {
                 options.body = JSON.stringify(body);
@@ -73,21 +114,21 @@
             const response = await fetch(url, options);
             return response.ok ? response.json() : Promise.reject(response.statusText);
         }
-
+    
         // Populate form fields with route data
         function populateRouteForm(route) {
             document.getElementById('origin').value = route.origin;
             document.getElementById('destination').value = route.destination;
             document.getElementById('distance').value = route.distance;
-
+    
             const durationInMinutes = route.estimated_duration;
             const hours = Math.floor(durationInMinutes / 60);
             const minutes = durationInMinutes % 60;
-
+    
             document.getElementById('estimated_duration_hours').value = hours;
             document.getElementById('estimated_duration_minutes').value = minutes;
         }
-
+    
         // Get only changed fields for update
         function getChangedFields() {
             const changedFields = {};
@@ -98,7 +139,7 @@
                     changedFields[field] = sanitizeInput(currentValue);
                 }
             });
-
+    
             // Combine hours and minutes into total minutes for estimated_duration
             const hours = parseInt(document.getElementById('estimated_duration_hours').value) || 0;
             const minutes = parseInt(document.getElementById('estimated_duration_minutes').value) || 0;
@@ -106,10 +147,10 @@
             if (totalMinutes !== initialRouteData.estimated_duration) {
                 changedFields.estimated_duration = totalMinutes;
             }
-
+    
             return changedFields;
         }
-
+    
         // Fetch and load the route data into the form
         async function loadRouteData(routeId) {
             try {
@@ -120,20 +161,20 @@
                 alert('Error fetching route data: ' + error);
             }
         }
-
+    
         // Handle form submission to update route
         async function handleUpdate(event) {
             event.preventDefault();
-
+    
             const routeId = document.getElementById('route_id').value;
             const changedData = getChangedFields();
-
+    
             // If no fields have changed, alert the user
             if (Object.keys(changedData).length === 0) {
                 alert('No changes detected.');
                 return;
             }
-
+    
             try {
                 await fetchData(`/routes/${routeId}`, 'PUT', changedData);
                 alert('Route updated successfully!');
@@ -141,11 +182,11 @@
                 alert('Error updating route: ' + error);
             }
         }
-
+    
         // Attach event listeners after the DOM content is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
             const routeIdInput = document.getElementById('route_id');
-
+    
             // Add listener to load route data only when a valid route_id is entered
             routeIdInput.addEventListener('blur', () => {
                 const routeId = routeIdInput.value;
@@ -153,12 +194,41 @@
                     loadRouteData(routeId);  // Fetch route data once route ID is provided
                 }
             });
-
+    
             document.getElementById('updateRouteForm').addEventListener('submit', handleUpdate);
+            updateAuthStatus(); // Update the login status banner on page load
         });
-    </script>
+    
+        // Check if user is logged in and update the UI
+        async function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken'); // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload(); // Refresh the page
+        }
+    </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <h1>Update Route</h1>
 
     <button onclick="window.location.href='/routes/search/form'">Go Back</button>

@@ -50,22 +50,57 @@
         button:disabled {
             background-color: #ddd;
         }
+
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
+
     </style>
     <script>
         let initialVehicleData = {};  // Store the initial vehicle data
-
+    
         // Utility function to sanitize input
         function sanitizeInput(input) {
             const element = document.createElement('div');
-            element.innerText = input.trim();  // Remove unnecessary spaces and escape HTML
-            return element.innerHTML;
+            element.innerText = input.trim();  
+            return element.innerHTML;  // Sanitize input
         }
-
+    
         // Utility function to fetch data from an API endpoint
         async function fetchData(url, method = 'GET', body = null) {
             const options = {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`  // Include JWT token
+                },
             };
             if (body) {
                 options.body = JSON.stringify(body);
@@ -73,7 +108,7 @@
             const response = await fetch(url, options);
             return response.ok ? response.json() : Promise.reject(response.statusText);
         }
-
+    
         // Populate form fields with vehicle data
         function populateVehicleForm(vehicle) {
             const fields = ['make', 'model', 'year', 'registration_number', 'status', 'mileage', 'fuel_type'];
@@ -81,7 +116,7 @@
                 document.getElementById(field).value = vehicle[field];
             });
         }
-
+    
         // Get only changed fields for update
         function getChangedFields() {
             const fields = ['make', 'model', 'year', 'registration_number', 'status', 'mileage', 'fuel_type'];
@@ -94,7 +129,7 @@
             });
             return changedFields;
         }
-
+    
         // Fetch and load the vehicle data into the form
         async function loadVehicleData(vehicleId) {
             try {
@@ -105,20 +140,20 @@
                 alert('Error fetching vehicle data: ' + error);
             }
         }
-
+    
         // Handle form submission to update vehicle
         async function handleUpdate(event) {
             event.preventDefault();
-
+    
             const vehicleId = document.getElementById('vehicle_id').value;
             const changedData = getChangedFields();
-
+    
             // If no fields have changed, alert the user
             if (Object.keys(changedData).length === 0) {
                 alert('No changes detected.');
                 return;
             }
-
+    
             try {
                 await fetchData(`/vehicles/${vehicleId}`, 'PUT', changedData);
                 alert('Vehicle updated successfully!');
@@ -126,11 +161,11 @@
                 alert('Error updating vehicle: ' + error);
             }
         }
-
+    
         // Attach event listeners after the DOM content is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
             const vehicleIdInput = document.getElementById('vehicle_id');
-
+    
             // Add listener to load vehicle data only when a valid vehicle_id is entered
             vehicleIdInput.addEventListener('blur', () => {
                 const vehicleId = vehicleIdInput.value;
@@ -138,12 +173,63 @@
                     loadVehicleData(vehicleId);  // Fetch vehicle data once vehicle ID is provided
                 }
             });
-
+    
             document.getElementById('updateVehicleForm').addEventListener('submit', handleUpdate);
+            updateAuthStatus();  // Update the login status banner on page load
         });
-    </script>
+    
+        // Check if the token is valid by sending a request to a protected endpoint
+        async function isTokenValid() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) return false;
+    
+            try {
+                const response = await fetch('/protected-endpoint', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+    
+                // If the response is OK, the token is valid
+                return response.ok;
+            } catch (error) {
+                console.error('Error verifying token:', error);
+                return false;
+            }
+        }
+    
+        // Check if user is logged in and update the UI
+        async function updateAuthStatus() {
+            const authStatusElement = document.getElementById('auth-status');
+            const tokenValid = await isTokenValid();
+    
+            if (tokenValid) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                localStorage.removeItem('accessToken'); // Remove invalid token
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken');  // Remove token from local storage
+            alert('Logged out successfully!');
+            location.reload();  // Refresh the page
+        }
+    </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
+
     <h1>Update Vehicle</h1>
 
     <button onclick="window.location.href='/vehicles/search/form'">Go Back</button>
@@ -178,5 +264,6 @@
 
         <button type="submit">Update Vehicle</button>
     </form>
+
 </body>
 </html>

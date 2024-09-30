@@ -27,78 +27,74 @@ def register():
     finally:
         db.close()
 
-
 # Helper function for the first user registration (without JWT)
 def register_first_user(db):
-    db = SessionLocal()
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
-        if not username or not password:
-            return jsonify({"error": "Username and password are required"}), 400
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
 
-        # Check if user already exists
-        existing_user = db.query(User).filter_by(username=username).first()
-        if existing_user:
-            return jsonify({"error": "User already exists"}), 400
+    # Check if user already exists
+    existing_user = db.query(User).filter_by(username=username).first()
+    if existing_user:
+        return jsonify({"error": "User already exists"}), 400
 
-        # Create new user (give the first user admin privileges if needed)
-        new_user = User(username=username, role='admin')  # Set role as 'admin'
-        new_user.set_pass(password)
-        db.add(new_user)
-        db.commit()
+    # Create new user (give the first user admin privileges if needed)
+    new_user = User(username=username, role='admin')  # Set role as 'admin'
+    new_user.set_pass(password)
+    db.add(new_user)
+    db.commit()
 
-        return jsonify({"message": "First user (admin) created successfully"}), 201
-    finally:
-        db.close()
-
+    return jsonify({"message": "First user (admin) created successfully"}), 201
 
 # Helper function for registration with JWT (for all future users)
 @jwt_required()
 def register_with_jwt(db):
-    db = SessionLocal()
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
-        if not username or not password:
-            return jsonify({"error": "Username and password are required"}), 400
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
 
-        # Check if user already exists
-        existing_user = db.query(User).filter_by(username=username).first()
-        if existing_user:
-            return jsonify({"error": "User already exists"}), 400
+    # Check if user already exists
+    existing_user = db.query(User).filter_by(username=username).first()
+    if existing_user:
+        return jsonify({"error": "User already exists"}), 400
 
-        # Create a regular user
-        new_user = User(username=username, role='user')  # Default role for subsequent users
-        new_user.set_pass(password)
-        db.add(new_user)
-        db.commit()
+    # Create a regular user
+    new_user = User(username=username, role='user')  # Default role for subsequent users
+    new_user.set_pass(password)
+    db.add(new_user)
+    db.commit()
 
-        return jsonify({"message": "User created successfully"}), 201
-    finally:
-        db.close()
+    return jsonify({"message": "User created successfully"}), 201
 
 
 # Login a user and generate a JWT
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    db = SessionLocal()
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+    if request.method == 'GET':
+        # Render the login page for GET requests
+        return render_template('login.html')
 
-        user = db.query(User).filter_by(username=username).first()
+    elif request.method == 'POST':
+        # Handle login logic for POST requests
+        db = SessionLocal()
+        try:
+            data = request.get_json()
+            username = data.get('username')
+            password = data.get('password')
 
-        if user is None or not user.check_pass(password):
-            return jsonify({"error": "Invalid credentials"}), 401
+            user = db.query(User).filter_by(username=username).first()
 
-        # Create a new access token
-        access_token = create_access_token(identity={'username': user.username, 'role': user.role})
-        return jsonify(access_token=access_token), 200
-    finally:
-        db.close()
+            if user is None or not user.check_pass(password):
+                return jsonify({"error": "Invalid credentials"}), 401
+
+            # Create a new access token
+            access_token = create_access_token(identity={'username': user.username, 'role': user.role})
+            return jsonify(access_token=access_token), 200
+        finally:
+            db.close()

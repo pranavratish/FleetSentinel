@@ -91,94 +91,113 @@
         }
     </style>
     <script>
-        // Utility function to sanitize input for client-side safety
-        function sanitizeInput(input) {
-            const element = document.createElement('div');
-            element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
-            return element.innerHTML;
-        }
-
-        // Function to handle form submission and sanitize the data
-        function handleSubmit(event) {
-            event.preventDefault();  // Prevents default form submission
-
-            // Collect the assignedVehicleID and set to null if empty
-            let assignedVehicleID = document.getElementById('assigned_vehicle_id').value;
-            assignedVehicleID = assignedVehicleID ? sanitizeInput(assignedVehicleID) : null;  // Do not sanitize if null
-
-            // Collecting and sanitizing form data
-            const sanitizedData = {
-                name: sanitizeInput(document.getElementById('name').value),
-                license_number: sanitizeInput(document.getElementById('license_number').value),
-                license_expiry_date: sanitizeInput(document.getElementById('license_expiry_date').value),
-                phone_number: sanitizeInput(document.getElementById('phone_number').value),
-                email: sanitizeInput(document.getElementById('email').value),
-                assigned_vehicle_id: assignedVehicleID  // Use null for empty vehicle ID
-            };
-
-            // Get the JWT token from localStorage (or sessionStorage, depending on your implementation)
-            const token = localStorage.getItem('accessToken');
-
-            if (!token) {
-                alert('You must be logged in to create a driver.');
-                return;
-            }
-
-            // POST request to server with sanitized data and JWT token
-            fetch('/drivers', {
-                method: 'POST',
+    // Utility function to sanitize input for client-side safety
+    function sanitizeInput(input) {
+        const element = document.createElement('div');
+        element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
+        return element.innerHTML;
+    }
+    
+    // Function to check if the token is valid
+    async function isTokenValid() {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return false;
+    
+        try {
+            const response = await fetch('/protected-endpoint', {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
-                },
-                body: JSON.stringify(sanitizedData),
-            })
-            // Handling the server's response
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Error creating driver');
+                    'Authorization': `Bearer ${token}`
                 }
-            })
-            .then(data => {
-                alert(`Driver created successfully with ID: ${data.driver_id}`);
-            })
-            .catch(error => {
-                alert('Error creating driver: ' + error.message);
             });
+    
+            return response.ok;  // Return true if the token is valid
+        } catch (error) {
+            console.error('Error verifying token:', error);
+            return false;
         }
-
-        // Check if user is logged in and update the UI
-        function updateAuthStatus() {
-            const token = localStorage.getItem('accessToken');
-            const authStatusElement = document.getElementById('auth-status');
-
-            if (token) {
-                authStatusElement.innerHTML = `
-                    <span>Welcome, User!</span>
-                    <button onclick="logout()">Logout</button>
-                `;
+    }
+    
+    // Function to handle form submission and sanitize the data
+    function handleSubmit(event) {
+        event.preventDefault();  // Prevents default form submission
+    
+        // Collect the assignedVehicleID and set to null if empty
+        let assignedVehicleID = document.getElementById('assigned_vehicle_id').value;
+        assignedVehicleID = assignedVehicleID ? sanitizeInput(assignedVehicleID) : null;  // Do not sanitize if null
+    
+        // Collecting and sanitizing form data
+        const sanitizedData = {
+            name: sanitizeInput(document.getElementById('name').value),
+            license_number: sanitizeInput(document.getElementById('license_number').value),
+            license_expiry_date: sanitizeInput(document.getElementById('license_expiry_date').value),
+            phone_number: sanitizeInput(document.getElementById('phone_number').value),
+            email: sanitizeInput(document.getElementById('email').value),
+            assigned_vehicle_id: assignedVehicleID  // Use null for empty vehicle ID
+        };
+    
+        const token = localStorage.getItem('accessToken');
+    
+        if (!token) {
+            alert('You must be logged in to create a driver.');
+            return;
+        }
+    
+        // POST request to server with sanitized data and JWT token
+        fetch('/drivers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
+            },
+            body: JSON.stringify(sanitizedData),
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
             } else {
-                authStatusElement.innerHTML = `
-                    <a href="/login">Login</a>
-                `;
+                throw new Error('Error creating driver');
             }
-        }
-
-        // Handle user logout
-        function logout() {
-            localStorage.removeItem('accessToken'); // Remove token from local storage
-            alert('Logged out successfully!');
-            location.reload(); // Refresh the page
-        }
-
-        // Update the auth status when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('createDriverForm').addEventListener('submit', handleSubmit);
-            updateAuthStatus();
+        })
+        .then(data => {
+            alert(`Driver created successfully with ID: ${data.driver_id}`);
+        })
+        .catch(error => {
+            alert('Error creating driver: ' + error.message);
         });
-    </script>
+    }
+    
+    // Function to check if user is logged in and update the UI
+    async function updateAuthStatus() {
+        const authStatusElement = document.getElementById('auth-status');
+        const tokenValid = await isTokenValid();  // Check token validity
+    
+        if (tokenValid) {
+            authStatusElement.innerHTML = `
+                <span>Welcome, User!</span>
+                <button onclick="logout()">Logout</button>
+            `;
+        } else {
+            localStorage.removeItem('accessToken');  // Remove invalid token
+            authStatusElement.innerHTML = `
+                <a href="/login">Login</a>
+            `;
+        }
+    }
+    
+    // Handle user logout
+    function logout() {
+        localStorage.removeItem('accessToken');  // Remove token from local storage
+        alert('Logged out successfully!');
+        location.reload();  // Refresh the page
+    }
+    
+    // Update the auth status when the page loads
+    document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('createDriverForm').addEventListener('submit', handleSubmit);
+        await updateAuthStatus();  // Await token validation and update UI
+    });
+    </script>   
 </head>
 <body>
     <!-- Auth status banner (fixed in the top-right corner) -->

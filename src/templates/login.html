@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to FleetSentinel</title>
+    <title>Login - FleetSentinel</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,55 +16,49 @@
         }
 
         .container {
-            text-align: center;
-            margin-top: 50px;
-        }
-
-        a {
-            text-decoration: none;
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: white;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-
-        a:hover {
-            background-color: #0056b3;
-        }
-
-        a:active {
-            background-color: #003f7f;
-        }
-
-        /* Login form styles */
-        .login-container {
-            text-align: center;
-            margin-bottom: 30px;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         input[type="text"], input[type="password"] {
+            width: 100%;
             padding: 10px;
-            margin: 5px;
+            margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 16px;
         }
 
         button {
-            padding: 10px 20px;
+            width: 100%;
+            padding: 10px;
             background-color: #007BFF;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 16px;
         }
 
         button:hover {
             background-color: #0056b3;
         }
 
-        /* User status section fixed in the top-right corner */
+        .login-form a {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        .login-form a:hover {
+            text-decoration: underline;
+        }
+
         #auth-status {
             position: fixed;
             top: 10px;
@@ -78,13 +72,9 @@
             align-items: center;
         }
 
-        #auth-status span {
-            margin-right: 10px;
-        }
-
         #auth-status button {
             padding: 5px 10px;
-            background-color: #fff;
+            background-color: white;
             color: #007BFF;
             border: none;
             border-radius: 3px;
@@ -94,15 +84,16 @@
         #auth-status button:hover {
             background-color: #f1f1f1;
         }
+
     </style>
     <script>
         // Handle login form submission
         async function handleLogin(event) {
             event.preventDefault(); // Prevent default form submission behavior
-    
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-    
+
             // Send login request
             try {
                 const response = await fetch('/login', {
@@ -112,12 +103,12 @@
                     },
                     body: JSON.stringify({ username, password })
                 });
-    
+
                 if (response.ok) {
                     const { access_token } = await response.json();
                     localStorage.setItem('accessToken', access_token); // Store token in local storage
                     alert('Login successful!');
-                    location.reload(); // Refresh the page after successful login
+                    window.location.href = '/'; // Redirect to homepage after login
                 } else {
                     alert('Login failed! Please check your credentials.');
                 }
@@ -126,92 +117,48 @@
                 alert('Error connecting to the server.');
             }
         }
-    
-        // Check if the token is valid by sending a request to a protected endpoint
-        async function isTokenValid() {
-            const token = localStorage.getItem('accessToken');
-            if (!token) return false;
-    
-            try {
-                const response = await fetch('/protected-endpoint', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-    
-                // If the response is OK, the token is valid
-                return response.ok;
-            } catch (error) {
-                console.error('Error verifying token:', error);
-                return false;
-            }
-        }
-    
+
         // Check if user is logged in and update the UI
-        async function updateAuthStatus() {
+        function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
             const authStatusElement = document.getElementById('auth-status');
-            const tokenValid = await isTokenValid();
-    
-            if (tokenValid) {
+
+            if (token) {
                 authStatusElement.innerHTML = `
                     <span>Welcome, User!</span>
                     <button onclick="logout()">Logout</button>
                 `;
             } else {
-                localStorage.removeItem('accessToken'); // Remove invalid token
                 authStatusElement.innerHTML = `
                     <a href="/login">Login</a>
                 `;
             }
         }
-    
+
         // Handle user logout
         function logout() {
             localStorage.removeItem('accessToken'); // Remove token from local storage
             alert('Logged out successfully!');
             location.reload(); // Refresh the page
         }
-    
+
         // Update the auth status when the page loads
         document.addEventListener('DOMContentLoaded', updateAuthStatus);
-    </script>    
+    </script>
 </head>
 <body>
-
-    <h1>Welcome to FleetSentinel</h1>
-    <p>Manage your vehicles easily.</p>
 
     <!-- Auth status banner (fixed in the top-right corner) -->
     <div id="auth-status"></div>
 
-    <!-- Login form -->
-    <div class="login-container">
-        <form onsubmit="handleLogin(event)">
+    <h1>Login to FleetSentinel</h1>
+    <div class="container">
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <input type="text" id="username" name="username" placeholder="Username" required>
             <input type="password" id="password" name="password" placeholder="Password" required>
             <button type="submit">Login</button>
-            <a href="/register/form">Register a User</a>
+            <a href="/register/form">Don't have an account? Register here</a>
         </form>
-    </div>
-
-    <!-- Application actions after login -->
-    <div class="container">
-        <!-- vehicles -->
-        <a href="/vehicles/new">Create a New Vehicle</a>
-        <a href="/vehicles/search/form">Vehicle Inventory</a>
-        <!-- drivers -->
-        <a href="/drivers/new">Add a Driver</a>
-        <a href="/drivers/search/form">Driver Registry</a>
-        <!-- trip logs -->
-        <a href="/trip_logs/new">Add a Trip Log</a>
-        <a href="/trip_logs/search/form">Trip Logs</a>
-        <!-- routes -->
-        <a href="/routes/new">Create Route</a>
-        <a href="/routes/search/form">Routes</a>
-        <!-- maintenance -->
-        <a href="/maintenance/new">Create Maintenance Record</a>
-        <a href="/maintenance/search/form">Maintenance Records</a>
     </div>
 
 </body>

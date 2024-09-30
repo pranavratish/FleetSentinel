@@ -89,11 +89,11 @@
             element.innerText = input.trim();  
             return element.innerHTML;
         }
-
+    
         // Handle form submission to update driver
         async function handleUpdate(event) {
             event.preventDefault();
-
+    
             const driverId = document.getElementById('driver_id').value;
             const sanitizedData = {
                 name: sanitizeInput(document.getElementById('name').value),
@@ -103,14 +103,14 @@
                 email: sanitizeInput(document.getElementById('email').value),
                 assigned_vehicle_id: sanitizeInput(document.getElementById('assigned_vehicle_id').value || null)
             };
-
+    
             const token = localStorage.getItem('accessToken');
-
+    
             if (!token) {
                 alert('You must be logged in to update a driver.');
                 return;
             }
-
+    
             try {
                 const response = await fetch(`/drivers/${driverId}`, {
                     method: 'PUT',
@@ -120,7 +120,7 @@
                     },
                     body: JSON.stringify(sanitizedData)
                 });
-
+    
                 if (response.ok) {
                     alert('Driver updated successfully!');
                 } else {
@@ -130,17 +130,17 @@
                 alert('Error updating driver: ' + error.message);
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
+    
+        document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('updateDriverForm').addEventListener('submit', handleUpdate);
-            updateAuthStatus(); // Update the login status banner on page load
+            await updateAuthStatus(); // Await token validation and update UI on page load
         });
-
+    
         // Check if user is logged in and update the UI
-        function updateAuthStatus() {
+        async function updateAuthStatus() {
             const token = localStorage.getItem('accessToken');
             const authStatusElement = document.getElementById('auth-status');
-
+    
             if (token) {
                 authStatusElement.innerHTML = `
                     <span>Welcome, User!</span>
@@ -152,14 +152,14 @@
                 `;
             }
         }
-
+    
         // Handle user logout
         function logout() {
             localStorage.removeItem('accessToken'); // Remove token from local storage
             alert('Logged out successfully!');
             location.reload(); // Refresh the page
         }
-    </script>
+    </script>    
 </head>
 <body>
 

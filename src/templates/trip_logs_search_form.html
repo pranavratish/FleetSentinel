@@ -72,35 +72,65 @@
             font-weight: bold;
         }
 
+        /* Auth status section fixed in the top-right corner */
+        #auth-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        #auth-status span {
+            margin-right: 10px;
+        }
+
+        #auth-status button {
+            padding: 5px 10px;
+            background-color: #fff;
+            color: #007BFF;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #auth-status button:hover {
+            background-color: #f1f1f1;
+        }
     </style>
     <script>
         let currentPage = 1;
         let perPage = 10;
-
+    
         // Sanitize input to prevent XSS attacks
         function sanitizeInput(input) {
             const element = document.createElement('div');
-            element.innerText = input;  // Encode the input as text
+            element.innerText = input;
             return element.innerHTML;   // Return sanitized string
         }
-
+    
         // Function to display the trip log data in a table
         function displayDataInTable(tripLogs) {
             const tripLogTableBody = document.getElementById('tripLogTableBody');
             tripLogTableBody.innerHTML = '';  // Clear existing content
-
+    
             tripLogs.forEach(log => {
                 const row = document.createElement('tr');
-
+    
                 // Redirect to the update form with the trip_id in the URL
                 row.onclick = () => {
                     window.location.href = `/trip_logs/${log.trip_id}/update`;
                 };
-
+    
                 // Handle potential null or empty values
-                const endTime = log.end_time || 'N/A';  // Handle nullable end_time
-                const mileageEnd = log.mileage_end !== null ? sanitizeInput(log.mileage_end) : 'N/A';  // Handle nullable mileage_end
-
+                const endTime = log.end_time || 'N/A';
+                const mileageEnd = log.mileage_end !== null ? sanitizeInput(log.mileage_end) : 'N/A';
+    
                 row.innerHTML = `
                     <td>${sanitizeInput(log.trip_id)}</td>
                     <td>${sanitizeInput(log.vehicle_id)}</td>
@@ -116,18 +146,26 @@
                 `;
                 tripLogTableBody.appendChild(row);
             });
-
+    
             document.getElementById('tripLogTable').style.display = tripLogs.length ? 'table' : 'none';
         }
-
+    
         // Function to fetch and display trip logs from the server
         async function fetchAndDisplayTripLogs(url) {
             try {
-                const response = await fetch(url);
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    alert('You must be logged in to view trip logs.');
+                    return;
+                }
+    
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (response.ok) {
                     const result = await response.json();
                     displayDataInTable(result.trip_logs || result);
-                    document.getElementById('message').innerText = result.page 
+                    document.getElementById('message').innerText = result.page
                         ? `Showing page ${result.page} of ${Math.ceil(result.total_trip_logs / perPage)}`
                         : '';
                 } else {
@@ -139,52 +177,57 @@
                 document.getElementById('resultMessage').innerText = 'Error connecting to the server.';
             }
         }
-
+    
         // Function to fetch trip logs based on user-defined page, search query, filter, and sort options
         function fetchTripLogs(page) {
             const query = sanitizeInput(document.getElementById('searchBar').value);
             const filterStatus = document.getElementById('filterByStatus').value;
             const sortBy = document.getElementById('sortBy').value;
             const sortOrder = document.getElementById('sortOrder').value;
-
-            // Construct the URL with query, filter, and sorting parameters
+    
             const searchUrl = `/trip_logs/search?query=${query}&filterByStatus=${filterStatus}&sortBy=${sortBy}&sortOrder=${sortOrder}&page=${page}&per_page=${perPage}`;
             fetchAndDisplayTripLogs(searchUrl);
         }
-
+    
         // Event listener to initialize form actions
         document.addEventListener('DOMContentLoaded', function() {
-            // Search form submission event
             document.getElementById('searchTripLogForm').addEventListener('submit', function(event) {
                 event.preventDefault();
                 fetchTripLogs(currentPage);
             });
-
-            // Dropdown to select number of rows per page
+    
             document.getElementById('rowsPerPage').addEventListener('change', function(event) {
                 perPage = parseInt(event.target.value);
                 fetchTripLogs(currentPage);
             });
-
-            // Pagination controls
+    
             document.getElementById('prevPage').addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
                     fetchTripLogs(currentPage);
                 }
             });
-
+    
             document.getElementById('nextPage').addEventListener('click', () => {
                 currentPage++;
                 fetchTripLogs(currentPage);
             });
+    
+            updateAuthStatus(); // Update the login status banner on page load
         });
-
+    
         // Function to handle the deletion of a trip log with confirmation
         async function handleDelete(tripId) {
             try {
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    alert('You must be logged in to delete a trip log.');
+                    return;
+                }
+    
                 const response = await fetch(`/trip_logs/${tripId}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
                     alert('Trip log deleted successfully!');
@@ -196,16 +239,43 @@
                 alert('Error connecting to the server.');
             }
         }
-
+    
         // Function to confirm deletion before proceeding
         function confirmDelete(tripId) {
             if (confirm(`Are you sure you want to delete trip log with ID ${tripId}? This action cannot be undone.`)) {
                 handleDelete(tripId);  // Proceed with deletion if confirmed
             }
         }
+    
+        // Check if user is logged in and update the UI
+        function updateAuthStatus() {
+            const token = localStorage.getItem('accessToken');
+            const authStatusElement = document.getElementById('auth-status');
+    
+            if (token) {
+                authStatusElement.innerHTML = `
+                    <span>Welcome, User!</span>
+                    <button onclick="logout()">Logout</button>
+                `;
+            } else {
+                authStatusElement.innerHTML = `
+                    <a href="/login">Login</a>
+                `;
+            }
+        }
+    
+        // Handle user logout
+        function logout() {
+            localStorage.removeItem('accessToken');
+            alert('Logged out successfully!');
+            location.reload();
+        }
     </script>    
 </head>
 <body>
+
+    <!-- Auth status banner (fixed in the top-right corner) -->
+    <div id="auth-status"></div>
 
     <h1>Trip Log List & Search</h1>
 

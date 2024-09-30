@@ -97,18 +97,18 @@
             element.innerText = input.trim();  // Trims whitespace and escapes HTML entities
             return element.innerHTML;
         }
-
+    
         // Function to handle form submission and sanitize the data
         async function handleSubmit(event) {
             event.preventDefault();  // Prevents default form submission
-
+    
             // Get the JWT token from localStorage
             const token = localStorage.getItem('accessToken');
             if (!token) {
                 alert('You must be logged in to create a maintenance record.');
                 return;
             }
-
+    
             // Collecting and sanitizing form data
             const sanitizedData = {
                 vehicle_id: sanitizeInput(document.getElementById('vehicle_id').value),
@@ -119,41 +119,39 @@
                 cost: sanitizeInput(document.getElementById('cost').value),
                 notes: sanitizeInput(document.getElementById('notes').value),
             };
-
+    
             // POST request to server with sanitized data and JWT token
-            fetch('/maintenance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
-                },
-                body: JSON.stringify(sanitizedData),
-            })
-            // Handling the server's response
-            .then(response => {
+            try {
+                const response = await fetch('/maintenance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`  // Include the JWT token in the Authorization header
+                    },
+                    body: JSON.stringify(sanitizedData),
+                });
+    
                 if (response.ok) {
-                    return response.json();
+                    const data = await response.json();
+                    alert(`Maintenance record created successfully with ID: ${data.maintenance_id}`);
                 } else {
                     throw new Error('Error creating maintenance record');
                 }
-            })
-            .then(data => {
-                alert(`Maintenance record created successfully with ID: ${data.maintenance_id}`);
-            })
-            .catch(error => {
+            } catch (error) {
                 alert('Error creating maintenance record: ' + error.message);
-            });
+            }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            updateAuthStatus(); // Update the login status banner on page load
+    
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('createMaintenanceForm').addEventListener('submit', handleSubmit);
+            await updateAuthStatus();  // Await token validation and update UI on page load
         });
-
+    
         // Check if user is logged in and update the UI
-        function updateAuthStatus() {
+        async function updateAuthStatus() {
             const token = localStorage.getItem('accessToken');
             const authStatusElement = document.getElementById('auth-status');
-
+    
             if (token) {
                 authStatusElement.innerHTML = `
                     <span>Welcome, User!</span>
@@ -165,14 +163,14 @@
                 `;
             }
         }
-
+    
         // Handle user logout
         function logout() {
             localStorage.removeItem('accessToken'); // Remove token from local storage
             alert('Logged out successfully!');
             location.reload(); // Refresh the page
         }
-    </script>
+    </script>    
 </head>
 <body>
 
